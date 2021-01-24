@@ -17,8 +17,6 @@ class Stream:
         self.fileobj_r = fileobj_r
         self.fileobj_w = fileobj_w
 
-        job.streams.append(self)
-
     def reader(self):
         return self.fileobj_r
 
@@ -27,19 +25,23 @@ class Stream:
 
     def close_reader(self):
         if self.fileobj_r is not None:
-            if self.fileobj_r != os.devnull:
-                self.fileobj_r.close()
+            self.fileobj_r.close()
             self.fileobj_r = None
 
     def close_writer(self):
         if self.fileobj_w is not None:
-            if self.fileobj_w != os.devnull:
-                self.fileobj_w.close()
+            self.fileobj_w.close()
             self.fileobj_w = None
 
     def close(self):
         self.close_reader()
         self.close_writer()
+
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
 
 @export
 class PipeStream(Stream):
@@ -63,7 +65,7 @@ class FileStream(Stream):
     def __init__(self, job, partial_path, mode):
         path = pathlib.Path(partial_path)
         if not path.is_absolute():
-            path = job.shell.current_working_directory / path
+            path = job.cwd / path
         self.path = path.resolve()
 
         if 'r' in mode:
@@ -79,33 +81,32 @@ class FileStream(Stream):
         super().__init__(job, fileobj_r, fileobj_w)
 
 @export
-class NullStream(FileStream):
-    def __init__(self, job, mode):
-        super().__init__(job, os.devnull, mode)
-
-    def close_reader(self):
-        pass
-
-    def close_writer(self):
-        pass
+class NullStream(Stream):
+    def __init__(self, job):
+        super().__init__(job)
 
 @export
-class ShellStream(Stream):
-    def __init__(self, job, stream_type):
-        fileobj_r = None
-        fileobj_w = None
+class ManualStream(Stream):
+    def __init__(self, job, fileobj_r=None, fileobj_w=None):
+        if fileobj_r is None:
+            fileobj_r = open(os.devnull, 'r')
+            self.close_r = True
+        else:
+            self.close_r = False
 
-        if stream_type == 'stdin':
-            fileobj_r = job.shell.stdin
-        elif stream_type == 'stdout':
-            fileobj_w = job.shell.stdout
-        elif stream_type == 'stderr':
-            fileobj_w = job.shell.stderr
-
-        super().__init__(job, fileobj_r=fileobj_r, fileobj_w=fileobj_w)
+        if fileobj_w is None:
+            fileobj_w = open(os.devnull, 'w')
+            self.close_w = True
+        else:
+            self.close_w = False
+        
+        self.fileobj_r = fileobj_r
+        self.fileobj_w = fileobj_w
 
     def close_reader(self):
-        pass
+        if self.close_r:
+            super().close_reader()
 
     def close_writer(self):
-        pass
+        if self.close_w:
+            super().close_writer()

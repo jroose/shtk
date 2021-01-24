@@ -2,6 +2,7 @@ import pathlib
 import os
 import os.path
 import inspect
+import contextlib
 
 __all__ =  ["export"]
 
@@ -20,3 +21,4 @@ def which(program):
             return exe_file
 
     return None
+
