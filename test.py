@@ -6,6 +6,10 @@ ls = sh.command('ls')
 wc = sh.command('wc')
 cat = sh.command('cat')
 sleep = sh.command('sleep')
+touch = sh.command('touch')
+
+"touch tmp.txt"
+sh(touch('tmp.txt'))
 
 "cat tmp.txt"
 sh(cat('tmp.txt'))

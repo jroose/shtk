@@ -35,18 +35,16 @@ class FileStreamFactory(StreamFactory):
 
 @export
 class NullStreamFactory(StreamFactory):
-    def __init__(self, mode):
-        self.mode = mode
-        
     def build(self, job):
-        return NullStream(job, self.mode)
+        return NullStream(job)
 
 @export
-class ShellStreamFactory(StreamFactory):
-    def __init__(self, stream_type):
-        if stream_type not in ("stdin", "stdout", "stderr"):
-            raise ValueError("Argument `stream_type` must be one of stdin, stdout, stderr")
-        self.stream_type = stream_type
-
+class ManualStreamFactory(StreamFactory):
+    def __init__(self, fileobj_r=None, fileobj_w=None):
+        self.fileobj_r = fileobj_r
+        self.fileobj_w = fileobj_w
+            
     def build(self, job):
-        return ShellStream(job, self.stream_type)
+        return ManualStream(job, fileobj_r=self.fileobj_r, fileobj_w=self.fileobj_w)
+
+
