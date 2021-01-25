@@ -24,7 +24,7 @@ class TestBuild(TmpDirMixin):
         cwd = pathlib.Path(self.tmpdir.name)
         tmp_file = cwd / "tmp.txt"
 
-        null_stream = NullStream(None)
+        null_stream = NullStream()
 
         ppf = PipelineProcessFactory(which('touch'), cwd='./')
         ppf = ppf(tmp_file.resolve())
@@ -52,9 +52,9 @@ class TestBuildWithExplicitStreamsStdinStdout(TmpDirMixin):
         with open(input_file.resolve(), 'w') as fout:
             fout.write(message)
 
-        stdin_stream = FileStream(None, input_file.resolve(), 'r')
-        stdout_stream = FileStream(None, output_file.resolve(), 'w')
-        null_stream = NullStream(None)
+        stdin_stream = FileStream(input_file.resolve(), 'r')
+        stdout_stream = FileStream(output_file.resolve(), 'w')
+        null_stream = NullStream()
 
         ppf = PipelineProcessFactory(which('cat'), cwd='./')
 
@@ -82,8 +82,8 @@ class TestBuildWithExplicitStreamsStderr(TmpDirMixin):
         input_file = cwd / "input.txt"
         output_file = cwd / "output.txt"
 
-        stderr_stream = FileStream(None, output_file.resolve(), 'w')
-        null_stream = NullStream(None)
+        stderr_stream = FileStream(output_file.resolve(), 'w')
+        null_stream = NullStream()
 
         ppf = PipelineProcessFactory(which('cat'), input_file.resolve(), cwd='./')
 

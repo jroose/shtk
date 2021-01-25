@@ -1,3 +1,9 @@
+"""
+Shells are the primary way of interacting with shtk.  You can use them to
+define and run a series of commands called a Pipeline as subprocesses of the
+Python script.
+"""
+
 import asyncio
 import atexit
 import collections
@@ -18,8 +24,28 @@ __all__ = ["default_shell"]
 
 @export
 class Shell:
+    """
+    A shell object tracks pre-requisite information (e.g. cwd and environment
+    variables) necessary to run commands as subprocesses.  A shell is also a
+    context manager that exposes environment variables and other info to
+    subshells and subprocesses, while also setting itself as the default shell
+    within managed code.
+
+    Args:
+        cwd (str, pathlib.Path): Current working directory for subprocesses.
+        inherit_env (boolean): Whether to inherit environment variables from
+            the parent shell.
+        umask (int): Controls the default umask for subprocesses
+        stdin (file-like): Default stdin stream for subprocesses (defaults to
+            sys.stdin)
+        stdout (file-like): Default stdout stream for subprocesses (defaults to
+            sys.stdout)
+        stderr (file-like): Default stderr stream for subprocesses (defaults to
+            sys.stderr)
+        exceptions (boolean): Whether exceptions should be raised when non-zero
+            exit codes are returned by subprocesses.
+    """
     _thread_vars = collections.defaultdict(dict)
-    initial_umask = int(subprocess.check_output(['grep', 'Umask', f"/proc/{os.getpid()}/status"]).split()[-1], 8)
     
     def __init__(self, cwd=None, inherit_env=True, umask=None, stdin=None, stdout=None, stderr=None, exceptions=True):
         self.lock = threading.RLock()
@@ -38,7 +64,7 @@ class Shell:
             self.pwd = None
 
             if umask is None:
-                umask = self.initial_umask
+                umask = int(subprocess.check_output(['grep', 'Umask', f"/proc/{os.getpid()}/status"]).split()[-1], 8)
             self.umask = umask
             
             if stdin is None:
@@ -54,9 +80,37 @@ class Shell:
             self.stderr = stderr
 
     def command(self, name, user=None):
-        name = os.path.expanduser(name)
+        """
+        Creates a PipelineProcessFactory suitable for executing a command
 
-        if '/' in name:
+        Args:
+            name (str or pathlib.Path): Name or path of the command to run.  If
+                an absolute or relative path is provided (must contain a '/'
+                character) then the command will be loaded from the specified
+                location.  Otherwise the locations specified by the $PATH
+                environment variable will be checked for suitable executable
+                and readable files with the appropriate name.
+
+                If name is an str, then the name will be passed through
+                os.path.expanduser prior to lookup.
+
+            user: User to sudo to prior to execution (Default value = None)
+
+        Returns:
+            PipelineProcessFactory:
+                A PipelineProcessFactory node representing the command to be
+                executed.
+
+        Raises:
+            RuntimeError: command cannot be found
+            RuntimeError: command filepath is not readable
+            RuntimeError: command filepath is not executable
+        """
+
+        if isinstance(name, str):
+            name = os.path.expanduser(name)
+
+        if isinstance(name, pathlib.Path) or '/' in name:
             path = pathlib.Path(name)
             if path.is_absolute():
                 command_path = path.resolve()
@@ -80,6 +134,18 @@ class Shell:
             return PipelineProcessFactory('sudo', '-u', user, command_path)
 
     def cd(self, path):
+        """
+        Changes the default current working directory for subprocesses built by the Shell
+
+        Args:
+            path (str or pathlib.Path): Changes directory to provided path such
+                that managed subprocesses will use this directory as their
+                default current working directory.  If '-' is provided, returns
+                to previous working directory.
+
+        Raises:
+            RuntimeError: raised if path is not a directory
+        """
         with self.lock:
             if path == '-':
                 path = self.pwd
@@ -90,22 +156,51 @@ class Shell:
             else:
                 new_cwd = path.resolve()
 
+            if not new_cwd.is_dir():
+                raise RuntimeError(f"{new_cwd!s} is not a directory")
+
             self.pwd = self.cwd
-            self.cwd = new_cwd.resolve()
+            self.cwd = new_cwd
 
     @contextlib.contextmanager
     def cd_manager(self, new_wd):
+        """
+        Contextmanager for Shell.cd() returns to previous dir after exit
+
+        Args:
+            new_wd (str or pathlib.Path): directory to change to
+
+        Yields:
+            pathlib.Path: The new self.cwd
+        """
         old_wd = self.cwd
         self.cd(new_wd)
-        yield new_wd
+        yield self.cwd
         self.cd(old_wd)
 
     def export(self, **env):
+        """
+        Sets environment variables passed as keyword arguments
+
+        Args:
+            **env (dict): List of key-value pairs that will set as environment
+                variables for the Shell()
+        """
         with self.lock:
             for key, value in env.items():
                 self.environment[key] = value
 
     def getenv(self, name):
+        """
+        Gets the value of an environment variable within the Shell
+
+        Args:
+            name (str): Name of the environment variable to evaluate
+
+        Returns:
+            str: The value of the named environment variable
+
+        """
         return self.environment[name]
 
     @classmethod
@@ -115,6 +210,12 @@ class Shell:
 
     @classmethod
     def get_shell(cls):
+        """
+        Gets the current active shell from the shell stack
+
+        Returns:
+            Shell: The most recently entered shell context
+        """
         tvars = cls._get_thread_vars()
         if len(tvars['shell_stack']) == 0:
             raise RuntimeError("No currently active shell")
@@ -143,9 +244,37 @@ class Shell:
         tvars['shell_stack'].pop()
 
     def __call__(self, *pipeline_factories, exceptions=None, wait=True):
+        """
+        Executes a series of PipelineNodeFactory nodes as subprocesses
+
+        Args:
+            *pipeline_factories: The PipelineNodeFactory nodes to execute
+            exceptions: Whether or not to raise exceptions for non-zero return
+                codes (Default value = None)
+            wait: Whether the call should block waiting for the subprocesses to
+                exit (Default value = True)
+
+        Returns:
+            list of int: The return codes of the subprocesses after exiting
+        """
         return self.run(*pipeline_factories, exceptions=exceptions, wait=wait)
 
     def run(self, *pipeline_factories, exceptions=None, wait=True):
+        """
+        Executes a series of PipelineNodeFactory nodes as subprocesses
+
+        Args:
+            *pipeline_factories: The PipelineNodeFactory nodes to execute
+            exceptions: Whether or not to raise exceptions for non-zero exit
+                codes (Default value = None)
+            wait: Whether the call should block waiting for the subprocesses to
+                exit (Default value = True)
+
+        Returns:
+            list of Job: 
+                Job instances representing individual pipelines.  The length of
+                the list will always be equal to the len(pipeline_factories)
+        """
         async def run_and_wait(*jobs, exceptions=None, wait=True):
             run_tasks = []
             for job in jobs:
@@ -180,6 +309,20 @@ class Shell:
         return ret
 
     def evaluate(self, pipeline_factory, exceptions=None):
+        """
+        Executes a PipelineNodeFactory and returns the stdout text
+
+        Args:
+            pipeline_factory (PipelineNodeFactory): the pipeline to instantiate
+                and execute
+            exceptions: Whether or not to raise exceptions when subprocesses
+                return non-zero return codes (Default value = None)
+
+        Returns:
+            str or bytes: 
+                A string generated by the text that the final subprocess writes
+                to stdout
+        """
         if exceptions is None:
             exceptions = self.exceptions
 

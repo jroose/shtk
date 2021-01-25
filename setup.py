@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+"""
+Setup script for SHTK
+"""
 
 from setuptools import setup, find_packages
 

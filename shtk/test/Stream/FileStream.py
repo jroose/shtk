@@ -21,7 +21,7 @@ class TestRead(TmpDirMixin):
         with open(path, 'w') as fout:
             fout.write(message)
 
-        stream = FileStream(None, path, mode='r')
+        stream = FileStream(path, mode='r')
         reader = stream.reader()
 
         self.assertEqual(reader.read(), message)
@@ -37,7 +37,7 @@ class TestWrite(TmpDirMixin):
         message = "Hello World!"
         path = pathlib.Path(self.tmpdir.name).resolve() / "tmp_w.txt"
 
-        stream = FileStream(None, path, mode='w')
+        stream = FileStream(path, mode='w')
         writer = stream.writer()
 
         self.assertEqual(writer.write(message), len(message))

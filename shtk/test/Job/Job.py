@@ -43,7 +43,7 @@ class TestBuildWithFileStdinStdout(TmpDirMixin):
 
         return_codes = job.wait()
 
-        self.assertEqual(return_codes, [0])
+        self.assertEqual(return_codes, (0,))
 
         self.assertTrue(output_file.exists())
         with open(output_file.resolve(), 'r') as fin:
@@ -76,7 +76,7 @@ class TestBuildWithPipeStdinStdout(TmpDirMixin):
 
         return_codes = job.wait()
 
-        self.assertEqual(return_codes, [0])
+        self.assertEqual(return_codes, (0,))
 
         self.assertEqual(message, observed)
 
@@ -106,7 +106,7 @@ class TestBuildWithNonexistentFileNoException(TmpDirMixin):
 
         return_codes = job.wait(exceptions=False)
 
-        self.assertEqual(return_codes, [1])
+        self.assertEqual(return_codes, (1,))
         self.assertTrue('No such file or directory' in observed)
 
 @export
