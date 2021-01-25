@@ -38,7 +38,7 @@ class TestRunCommand(TmpDirMixin):
             )[0]
 
             return_codes = job.wait()
-            self.assertEqual(return_codes, [0])
+            self.assertEqual(return_codes, (0,))
 
             self.assertTrue(os.path.exists(str(cwd / output_file)))
             with (cwd / output_file).open('r') as fin:
@@ -149,7 +149,7 @@ class TestChangeDirectory(TmpDirMixin):
             )[0]
 
             return_codes = job.wait()
-            self.assertEqual(return_codes, [0])
+            self.assertEqual(return_codes, (0,))
 
             self.assertTrue(os.path.exists(str(cwd / output_file)))
             with (cwd / output_file).open('r') as fin:
@@ -251,7 +251,7 @@ class TestChangeDirectoryManager(TmpDirMixin):
             self.assertEqual(sh.pwd, cwd)
 
             return_codes = job.wait()
-            self.assertEqual(return_codes, [0])
+            self.assertEqual(return_codes, (0,))
 
             self.assertTrue(os.path.exists(str(output_file)))
             with output_file.open('r') as fin:
@@ -282,7 +282,7 @@ class TestRunCommandDefaultShell(TmpDirMixin):
         )[0]
 
         return_codes = job.wait()
-        self.assertEqual(return_codes, [0])
+        self.assertEqual(return_codes, (0,))
 
         self.assertTrue(os.path.exists(str(output_file)))
         with output_file.open('r') as fin:

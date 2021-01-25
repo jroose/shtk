@@ -22,7 +22,7 @@ class TestRead(TmpDirMixin):
             fout.write(message)
 
         fileobj_r = open(path, 'r')
-        stream = Stream(None, fileobj_r=fileobj_r)
+        stream = Stream(fileobj_r=fileobj_r)
         reader = stream.reader()
 
         self.assertEqual(reader.read(), message)
@@ -39,7 +39,7 @@ class TestWrite(TmpDirMixin):
         path = pathlib.Path(self.tmpdir.name) / 'tmp_r.txt'
 
         fileobj_w = open(path, 'w')
-        stream = Stream(None, fileobj_w=fileobj_w)
+        stream = Stream(fileobj_w=fileobj_w)
         writer = stream.writer()
         writer.write(message)
         stream.close()
