@@ -35,6 +35,9 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
         cwd (str, pathlib.Path): Current working directory for subprocesses.
         inherit_env (boolean): Whether to inherit environment variables from
             the parent shell.
+        env (boolean): If provided Shell will use these key-value pairs as
+            environment variables.  Otherwise Shell inherits from the currently
+            active Shell, or default_shell.
         umask (int): Controls the default umask for subprocesses
         stdin (file-like): Default stdin stream for subprocesses (defaults to
             sys.stdin)
@@ -48,7 +51,7 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
     _thread_vars = collections.defaultdict(dict)
 
     def __init__(
-        self, cwd=None, inherit_env=True, umask=None, stdin=None,
+        self, cwd=None, env=None, umask=None, stdin=None,
         stdout=None, stderr=None, exceptions=True
     ):
         self.lock = threading.RLock()
@@ -56,10 +59,10 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
         self.event_loop = None
 
         with self.lock:
-            if inherit_env:
-                self.environment = dict(os.environ.items())
+            if env is None:
+                self.environment = dict(Shell.get_shell().environment)
             else:
-                self.environment = {}
+                self.environment = dict(env)
 
             if cwd is None:
                 cwd = os.getcwd()
@@ -354,6 +357,6 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
 
         return ret
 
-default_shell = Shell()
+default_shell = Shell(env=os.environ)
 default_shell.__enter__()
 atexit.register(default_shell.__exit__, None, None, None)

@@ -297,10 +297,10 @@ class PipelineProcessFactory(PipelineNodeFactory):
     Template for a PipelineProcess which runs a command as a subprocess
 
     Args:
-        *args: The command to run and its arguments for the instantiated
-            PipelineProcess instances.
-        env (dict): The environment variables to use for the instantiated
-            PipelineProcess instances (Default value = {}).
+        *args (list of str or pathlib.Path): The command to run and its
+            arguments for the instantiated PipelineProcess instances.
+        environment (dict): The environment variables to use for the
+            instantiated PipelineProcess instances (Default value = {}).
         cwd (str or pathlib.Path): The current working directory for the
             instantiated PipelineProcess instances (Default value = None).
     """
@@ -310,8 +310,9 @@ class PipelineProcessFactory(PipelineNodeFactory):
         self.cwd = cwd
 
         if env is None:
-            env = {}
-        self.env = env
+            self.environment = {}
+        else:
+            self.environment = dict(env)
 
     def __call__(self, *args, **env):
         """
@@ -327,16 +328,16 @@ class PipelineProcessFactory(PipelineNodeFactory):
         """
         return PipelineProcessFactory(
             *self.args, *args,
-            env=dict(self.env, **env),
+            env=dict(self.environment, **env),
             cwd=self.cwd
         )
 
     async def build_inner(self, job, stdin_stream, stdout_stream, stderr_stream):
         """Instantiates a PipelineProcess"""
         if job is not None:
-            env = dict(job.environment, **self.env)
+            env = dict(job.environment, **self.environment)
         else:
-            env = self.env
+            env = self.environment
 
         cwd = self.cwd or job.cwd
 

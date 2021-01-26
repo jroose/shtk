@@ -112,7 +112,7 @@ class TestCommandNotReadable(TmpDirMixin):
 @register()
 class TestNoEnvironment(TmpDirMixin):
     def runTest(self):
-        with Shell(inherit_env=False) as sh:
+        with Shell(env={}) as sh:
             self.assertEqual(len(sh.environment), 0)
 
 @export
@@ -123,7 +123,7 @@ class TestWithEnvironment(TmpDirMixin):
         message = 'Hello World!'
         MESSAGE = 'MESSAGE'
         os.environ[MESSAGE] = message
-        with Shell() as sh:
+        with Shell(env=os.environ) as sh:
             self.assertEqual(message, sh.getenv(MESSAGE))
             self.assertEqual(num_existing + 1, len(sh.environment))
 
