@@ -44,13 +44,6 @@ sh(
 )
 
 sh(
-    shtk.or_(
-        ls('test_file2.txt').stderr('/dev/null'),
-        ls('test_file1.txt')
-    )
-)
-
-sh(
     ls('test_file1.txt')
 )
 
