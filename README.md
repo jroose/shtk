@@ -100,11 +100,13 @@ The quick brown fox jumps over the lazy dog.
 """.lstrip()
     print(msg, file=fout)
 
-sh(
-    ls('test_file2.txt').stderr('/dev/null'),
-    ls('test_file1.txt'),
-    exceptions=False
-)
+try:
+    sh(
+        ls('test_file2.txt').stderr('/dev/null'),
+        ls('test_file1.txt')
+    )
+except shtk.NonzeroExitCodeException:
+    print("Caught a failure")
 
 sh(
     ls('test_file1.txt')
@@ -112,5 +114,6 @@ sh(
 
 #echo $(ls | wc -l)
 print(sh.evaluate(ls | wc('-l')).strip())
+
 ```
 
