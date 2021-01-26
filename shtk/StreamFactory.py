@@ -6,8 +6,8 @@ of a corresponding Stream class.
 import abc
 import pathlib
 
-from .Stream import *
-from .util import *
+from .Stream import * # pylint: disable=unused-wildcard-import
+from .util import export # pylint: disable=unused-import
 
 __all__ = []
 
@@ -29,9 +29,7 @@ class StreamFactory(abc.ABC):
         Returns:
             Stream:
                 The constructed Stream instance.
-
         """
-        pass
 
 @export
 class PipeStreamFactory(StreamFactory):
@@ -97,7 +95,7 @@ class FileStreamFactory(StreamFactory):
             FileStream:
                 The constructed FileStream instance.
         """
-        
+
         if self.partial_path.is_absolute():
             return FileStream(self.partial_path, self.mode)
         else:
@@ -142,7 +140,7 @@ class ManualStreamFactory(StreamFactory):
     def __init__(self, fileobj_r=None, fileobj_w=None):
         self.fileobj_r = fileobj_r
         self.fileobj_w = fileobj_w
-            
+
     def build(self, job):
         """
         Instantiates the ManualStream instance
@@ -156,5 +154,3 @@ class ManualStreamFactory(StreamFactory):
                 The constructed ManualStream instance.
         """
         return ManualStream(fileobj_r=self.fileobj_r, fileobj_w=self.fileobj_w)
-
-

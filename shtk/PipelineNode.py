@@ -1,15 +1,12 @@
 """
 PipelineNode instances are used to track and manage subprocesses run by shtk
-Shells. 
+Shells.
 """
 
 import abc
-import subprocess
 import asyncio
-import contextlib
-import time
 
-from .util import *
+from .util import export
 
 __all__ = []
 
@@ -51,7 +48,6 @@ class PipelineNode(abc.ABC):
         """
         Runs the process
         """
-        pass
 
     @abc.abstractmethod
     def __repr__(self):
@@ -155,7 +151,7 @@ class PipelineProcess(PipelineNode):
         )
 
     def __repr__(self):
-        return f"PipelineProcess(cwd={self.cwd!r}, args={self.args!r}, env={self.env!r}, stdin_stream={self.stdin_stream!r}, stdout_stream={self.stdout_stream!r}, stderr_stream={self.stderr_stream!r})"
+        return f"PipelineProcess(cwd={self.cwd!r}, args={self.args!r}, env={self.env!r}, stdin_stream={self.stdin_stream!r}, stdout_stream={self.stdout_stream!r}, stderr_stream={self.stderr_stream!r})" #pylint: disable=line-too-long
 
     def __str__(self):
         return f"PipelineProcess(args={self.args!r})"

@@ -13,12 +13,12 @@ __all__ = []
 @export
 class Stream:
     """
-    Base class for other Stream classes. 
-    
+    Base class for other Stream classes.
+
     Wraps file-like objects to couple readers and writers to the same streams
     (where it makes sense) and more tightly control closure of the stream.
     Also functions as a context manager (yielding self) that calls self.close()
-    upon exit.  
+    upon exit.
 
     Args:
         fileobj_r (file-like or None): A file-like object suitable for reading.
@@ -34,7 +34,7 @@ class Stream:
 
         if fileobj_w is None:
             fileobj_w = open(os.devnull, 'w')
-        
+
         self.fileobj_r = fileobj_r
         self.fileobj_w = fileobj_w
 
@@ -77,7 +77,7 @@ class Stream:
 
     def __enter__(self):
         return self
-    
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
@@ -94,7 +94,7 @@ class PipeStream(Stream):
     """
     def __init__(self, binary=False, flags=0):
         self.pipe_r, self.pipe_w = os.pipe2(os.O_CLOEXEC | flags)
-        
+
         os.set_inheritable(self.pipe_r, True)
         os.set_inheritable(self.pipe_w, True)
 
@@ -139,8 +139,6 @@ class NullStream(Stream):
     Opens os.devnull for both reading and writing
     """
 
-    pass
-
 @export
 class ManualStream(Stream):
     """
@@ -162,20 +160,10 @@ class ManualStream(Stream):
             close_writer() is called.
     """
     def __init__(self, fileobj_r=None, fileobj_w=None):
-        if fileobj_r is None:
-            fileobj_r = open(os.devnull, 'r')
-            self.close_r = True
-        else:
-            self.close_r = False
+        self.close_r = fileobj_r is None
+        self.close_w = fileobj_w is None
 
-        if fileobj_w is None:
-            fileobj_w = open(os.devnull, 'w')
-            self.close_w = True
-        else:
-            self.close_w = False
-        
-        self.fileobj_r = fileobj_r
-        self.fileobj_w = fileobj_w
+        super().__init__(fileobj_r=fileobj_r, fileobj_w=fileobj_w)
 
     def close_reader(self):
         """

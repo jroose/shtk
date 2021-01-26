@@ -6,7 +6,6 @@ import pathlib
 import os
 import os.path
 import inspect
-import contextlib
 
 __all__ =  ["export"]
 
@@ -43,10 +42,9 @@ def which(name, path=None):
     if path is None:
         path = os.environ['PATH']
 
-    for path in path.split(os.pathsep):
-        exe_file = pathlib.Path(os.path.expanduser(path), name)
+    for single_path in path.split(os.pathsep):
+        exe_file = pathlib.Path(os.path.expanduser(single_path), name)
         if os.path.isfile(exe_file) and os.access(exe_file, os.X_OK):
             return exe_file
 
     return None
-

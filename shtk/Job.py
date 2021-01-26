@@ -2,12 +2,9 @@
 import asyncio
 import io
 import os
-import pathlib
-import time
 
-from .StreamFactory import *
-from .PipelineNode import *
-from .util import *
+from .util import export
+from .PipelineNode import PipelineProcess
 
 __all__ = []
 
@@ -42,7 +39,7 @@ class NonzeroExitCodeException(Exception):
         message.close()
 
         super().__init__(self.message)
-        
+
 
 @export
 class Job:
@@ -68,9 +65,12 @@ class Job:
         self,
         pipeline_factory,
         cwd = None,
-        env = {},
+        env = None,
         event_loop = None
     ):
+        if env is None:
+            env = {}
+
         self.pipeline_factory = pipeline_factory
         self.pipeline = None
         self.environment = env
@@ -129,7 +129,7 @@ class Job:
 
     def get_process_nodes(self, pipeline_node=None):
         """
-        Gathers the PipelineProcess nodes instantiated for the pipeline.  
+        Gathers the PipelineProcess nodes instantiated for the pipeline.
 
         Args:
             pipeline_node (PipelineNode): Should initially be None, used for recursion (Default
@@ -222,7 +222,7 @@ class Job:
 
         Raises:
             NonzeroExitCodeException: When a process returns a non-zero return code
-            
+
         """
         ret = await self.pipeline.wait()
 
@@ -253,4 +253,3 @@ class Job:
         return self.event_loop.run_until_complete(
             self.wait_async(exceptions=exceptions)
         )
-

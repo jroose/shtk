@@ -9,8 +9,8 @@ import asyncio
 import contextlib
 import pathlib
 
-from .PipelineNode import *
-from .StreamFactory import *
+from .PipelineNode import * #pylint: disable=unused-wildcard-import
+from .StreamFactory import StreamFactory, FileStreamFactory, NullStreamFactory, PipeStreamFactory
 from .util import export
 
 __all__ = []
@@ -54,7 +54,9 @@ class PipelineNodeFactory(abc.ABC):
         elif arg is None:
             return NullStreamFactory()
         else:
-            raise TypeError(f"Argument `arg` must be instance of StreamFactory or str, not {type(arg)}")
+            raise TypeError(
+                f"Argument `arg` must be instance of StreamFactory or str, not {type(arg)}"
+            )
 
     def stdin(self, arg, mode='r'):
         """
@@ -63,7 +65,7 @@ class PipelineNodeFactory(abc.ABC):
         Args:
           arg (str, pathlib.Path, StreamFactory, or None): If arg is an str or
               pathlib.Path, it is treated as a filename and stdin will be read
-              from that file.  
+              from that file.
 
               If arg is a StreamFactory it is used directly to create streams
               for stdin.
@@ -93,7 +95,7 @@ class PipelineNodeFactory(abc.ABC):
         Args:
           arg (str, pathlib.Path, StreamFactory, or None): If arg is an str or
               pathlib.Path, it is treated as a filename and stdout will write
-              to that file.  
+              to that file.
 
               If arg is a StreamFactory it is used directly to create streams
               for stdout.
@@ -122,7 +124,7 @@ class PipelineNodeFactory(abc.ABC):
         Args:
           arg (str, pathlib.Path, StreamFactory, or None): If arg is an str or
               pathlib.Path, it is treated as a filename and stderr will write
-              to that file.  
+              to that file.
 
               If arg is a StreamFactory it is used directly to create streams
               for stderr.
@@ -171,7 +173,7 @@ class PipelineNodeFactory(abc.ABC):
             stdin_stream (Stream): Stream instance to pass to PipelineNode as stdin
             stdout_stream (Stream): Stream instance to pass to PipelineNode as stdout
             stderr_stream (Stream): Stream instance to pass to PipelineNode as stderr
-        
+
         Returns:
             PipelineNode:
                 The constructed PipelineNode instance
@@ -199,7 +201,7 @@ class PipelineNodeFactory(abc.ABC):
             raise ValueError("stderr_stream must not be None when not overriden by stderr()")
 
         ret = await self.build_inner(job, stdin_stream, stdout_stream, stderr_stream)
-        
+
         for closer in need_to_close:
             closer()
 
@@ -226,7 +228,6 @@ class PipelineNodeFactory(abc.ABC):
             PipelineNode:
                 An instantiated PipelineNode.
         """
-        pass
 
 @export
 class PipelineChannelFactory(PipelineNodeFactory):
@@ -254,10 +255,10 @@ class PipelineChannelFactory(PipelineNodeFactory):
     """
     def __init__(self, left, right, **kwargs):
         super().__init__(**kwargs)
-        
+
         if not isinstance(left, PipelineNodeFactory):
             raise TypeError("Argument `left` must be instance of PipelineNodeFactory")
-        
+
         if not isinstance(right, PipelineNodeFactory):
             raise TypeError("Argument `right` must be instance of PipelineNodeFactory")
 
@@ -303,11 +304,14 @@ class PipelineProcessFactory(PipelineNodeFactory):
         cwd (str or pathlib.Path): The current working directory for the
             instantiated PipelineProcess instances (Default value = None).
     """
-    def __init__(self, *args, env={}, cwd=None):
+    def __init__(self, *args, env=None, cwd=None):
         super().__init__()
         self.args = args
-        self.env = env
         self.cwd = cwd
+
+        if env is None:
+            env = {}
+        self.env = env
 
     def __call__(self, *args, **env):
         """
@@ -335,7 +339,7 @@ class PipelineProcessFactory(PipelineNodeFactory):
             env = self.env
 
         cwd = self.cwd or job.cwd
-        
+
         return await PipelineProcess.create(
             cwd = cwd,
             env = env,
