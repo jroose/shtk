@@ -57,9 +57,6 @@ cd ..
 
 ## Examples
 
-More examples can be found in the source code's examples directory (these are
-still under construction).
-
 ```
 import shtk
 
@@ -101,9 +98,10 @@ The quick brown fox jumps over the lazy dog.
     print(msg, file=fout)
 
 try:
+    # ls test_file2.txt 2> /dev/null | wc -l
     sh(
         ls('test_file2.txt').stderr('/dev/null'),
-        ls('test_file1.txt')
+        wc('-l')
     )
 except shtk.NonzeroExitCodeException:
     print("Caught a failure")
@@ -117,3 +115,5 @@ print(sh.evaluate(ls | wc('-l')).strip())
 
 ```
 
+More examples can be found in the source code's examples directory, but they're
+still under construction.
