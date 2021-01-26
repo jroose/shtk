@@ -1,6 +1,27 @@
-# Python SHTK
+# Python Shell Toolkit (SHTK)
 
-Python Shell Toolkit
+Python SHTK is a python module that seeks to make replacing shell scripts with
+Python scripts an easier process.  Python has a number of syntax advantages
+over traditional shell scripting languages such as BASH, including:
+* Classes
+* Modules
+* With statements
+* Try/Except statements
+* Async and await for coroutines
+
+The module and package oriented structure of Python's toolchain enables broad
+code re-use and redistribution. Python also benefits from a wide selection of
+built-in modules, and expands itself via the wide assortment of packages
+that can be quickly installed using its built-in package manager. 
+
+Finally, built-in automated test harnesses and long-standing code-quality
+integrations make it easy to review, document, test, and maintain its
+libraries.  
+
+The author's primary intended use cases for Python SHTK include replacing BASH
+scripts that automate builds of disk images, docker containers, and system
+configurations.
+
 
 ## Installation
 Using pip you can install shtk as follows:
@@ -23,11 +44,15 @@ python3 run_tests.py
 ```
 
 ## Documentation
-To build the documentation, run the following which generates documention in
-./docs/html/index.html
+The documentation is publically available at https://shtk.readthedocs.org
+
+To build the documentation from source, run the following which generates
+documention in ./docs/html/index.html
 
 ```
 cd docs
 make html
 cd ..
 ```
+
+## Examples
