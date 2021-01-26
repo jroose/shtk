@@ -18,10 +18,20 @@ Finally, built-in automated test harnesses and long-standing code-quality
 integrations make it easy to review, document, test, and maintain its
 libraries.  
 
+SHTK is written with the assumption that you want to run more than one command.
+Towards this end, improvements over Python's built-in subprocess library
+include:
+* Much shorter code -- designed to be as close to BASH as possible
+* Easy piping of stdout to other commands' stdin
+* Easy redirects to files
+* Shell objects to track and manage cwd and environment variables
+* An evaluate() function that returns the text a command wrote to stdout
+* Optional NonzeroExitCodeException raised in response to non-zero exit codes
+* Connects commands to sys.stdin, sys.stdout, and sys.stderr by default
+
 The author's primary intended use cases for Python SHTK include replacing BASH
 scripts that automate builds of disk images, docker containers, and system
 configurations.
-
 
 ## Installation
 Using pip you can install shtk as follows:
