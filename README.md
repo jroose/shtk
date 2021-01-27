@@ -110,8 +110,7 @@ The quick brown fox jumps over the lazy dog.
 try:
     # ls test_file2.txt 2> /dev/null | wc -l
     sh(
-        ls('test_file2.txt').stderr('/dev/null'),
-        wc('-l')
+        ls('test_file2.txt').stderr('/dev/null') | wc('-l')
     )
 except shtk.NonzeroExitCodeException:
     print("Caught a failure")
