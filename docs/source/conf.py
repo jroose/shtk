@@ -24,7 +24,7 @@ copyright = '2021, Jon Roose'
 author = 'Jon Roose'
 
 # The full version, including alpha/beta/rc tags
-release = 'v1.0.0'
+release = 'v0.9.2'
 
 
 # -- General configuration ---------------------------------------------------

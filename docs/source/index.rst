@@ -10,12 +10,3 @@ Welcome to SHTK's documentation!
    :maxdepth: 2
    
    shtk
-
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

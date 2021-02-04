@@ -20,7 +20,7 @@ from .util import export, which # pylint: disable=unused-import
 from .PipelineNodeFactory import PipelineProcessFactory
 from .StreamFactory import ManualStreamFactory, PipeStreamFactory
 
-__all__ = ["default_shell"]
+__all__ = []
 
 @export
 class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
@@ -33,11 +33,9 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
 
     Args:
         cwd (str, pathlib.Path): Current working directory for subprocesses.
-        inherit_env (boolean): Whether to inherit environment variables from
-            the parent shell.
         env (boolean): If provided Shell will use these key-value pairs as
             environment variables.  Otherwise Shell inherits from the currently
-            active Shell, or default_shell.
+            active Shell, or _default_shell.
         umask (int): Controls the default umask for subprocesses
         stdin (file-like): Default stdin stream for subprocesses (defaults to
             sys.stdin)
@@ -357,6 +355,6 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
 
         return ret
 
-default_shell = Shell(env=os.environ)
-default_shell.__enter__()
-atexit.register(default_shell.__exit__, None, None, None)
+_default_shell = Shell(env=os.environ)
+_default_shell.__enter__()
+atexit.register(_default_shell.__exit__, None, None, None)
