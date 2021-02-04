@@ -1,69 +1,163 @@
 shtk package
 ============
 
-Submodules
-----------
-
-shtk.Job module
+shtk.FileStream
 ---------------
 
-.. automodule:: shtk.Job
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. autoclass:: shtk.FileStream
+	:members:
+	:undoc-members:
+	:show-inheritance:
 
-shtk.PipelineNode module
-------------------------
+shtk.FileStreamFactory
+----------------------
 
-.. automodule:: shtk.PipelineNode
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. autoclass:: shtk.FileStreamFactory
+	:members:
+	:undoc-members:
+	:show-inheritance:
 
-shtk.PipelineNodeFactory module
--------------------------------
+shtk.Job
+--------
 
-.. automodule:: shtk.PipelineNodeFactory
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. autoclass:: shtk.Job
+	:members:
+	:undoc-members:
+	:show-inheritance:
 
-shtk.Shell module
+shtk.ManualStream
 -----------------
 
-.. automodule:: shtk.Shell
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. autoclass:: shtk.ManualStream
+	:members:
+	:undoc-members:
+	:show-inheritance:
 
-shtk.Stream module
-------------------
+shtk.ManualStreamFactory
+------------------------
 
-.. automodule:: shtk.Stream
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. autoclass:: shtk.ManualStreamFactory
+	:members:
+	:undoc-members:
+	:show-inheritance:
 
-shtk.StreamFactory module
--------------------------
+shtk.NonzeroExitCodeException
+-----------------------------
 
-.. automodule:: shtk.StreamFactory
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. autoclass:: shtk.NonzeroExitCodeException
+	:members:
+	:undoc-members:
+	:show-inheritance:
 
-shtk.util module
-----------------
-
-.. automodule:: shtk.util
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Module contents
+shtk.NullStream
 ---------------
 
-.. automodule:: shtk
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. autoclass:: shtk.NullStream
+	:members:
+	:undoc-members:
+	:show-inheritance:
+
+shtk.NullStreamFactory
+----------------------
+
+.. autoclass:: shtk.NullStreamFactory
+	:members:
+	:undoc-members:
+	:show-inheritance:
+
+shtk.PipeStream
+---------------
+
+.. autoclass:: shtk.PipeStream
+	:members:
+	:undoc-members:
+	:show-inheritance:
+
+shtk.PipeStreamFactory
+----------------------
+
+.. autoclass:: shtk.PipeStreamFactory
+	:members:
+	:undoc-members:
+	:show-inheritance:
+
+shtk.PipelineChannel
+--------------------
+
+.. autoclass:: shtk.PipelineChannel
+	:members:
+	:undoc-members:
+	:show-inheritance:
+
+shtk.PipelineChannelFactory
+---------------------------
+
+.. autoclass:: shtk.PipelineChannelFactory
+	:members:
+	:undoc-members:
+	:show-inheritance:
+
+shtk.PipelineNode
+-----------------
+
+.. autoclass:: shtk.PipelineNode
+	:members:
+	:undoc-members:
+	:show-inheritance:
+
+shtk.PipelineNodeFactory
+------------------------
+
+.. autoclass:: shtk.PipelineNodeFactory
+	:members:
+	:undoc-members:
+	:show-inheritance:
+
+shtk.PipelineProcess
+--------------------
+
+.. autoclass:: shtk.PipelineProcess
+	:members:
+	:undoc-members:
+	:show-inheritance:
+
+shtk.PipelineProcessFactory
+---------------------------
+
+.. autoclass:: shtk.PipelineProcessFactory
+	:members:
+	:undoc-members:
+	:show-inheritance:
+
+shtk.Shell
+----------
+
+.. autoclass:: shtk.Shell
+	:members:
+	:undoc-members:
+	:show-inheritance:
+
+shtk.Stream
+-----------
+
+.. autoclass:: shtk.Stream
+	:members:
+	:undoc-members:
+	:show-inheritance:
+
+shtk.StreamFactory
+------------------
+
+.. autoclass:: shtk.StreamFactory
+	:members:
+	:undoc-members:
+	:show-inheritance:
+
+shtk.util
+---------
+
+.. automodule:: shtk.util
+	:members:
+	:undoc-members:
+	:show-inheritance:
+
