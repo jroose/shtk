@@ -50,6 +50,31 @@ class PipelineNode(abc.ABC):
         """
 
     @abc.abstractmethod
+    def poll(self):
+        """
+        Check if the child processes have terminated.  Returns the exit code of
+        processes that have completed, returns None for processes that have not
+        completed.
+
+        Returns:
+            list of (int or None):
+                A list with one element per child process containing either an
+                integer exit code for completed processes or None for
+                incomplete processes.  
+        """
+      
+    @abc.abstractmethod
+    async def wait(self):
+        """
+        Waits for left and right PipelineNodes to complete
+
+        Returns:
+            list of int:
+                Combined list of return codes from left (first) and right
+                (later) PipelineNode children.
+        """
+
+    @abc.abstractmethod
     def __repr__(self):
         pass
 
@@ -89,6 +114,25 @@ class PipelineChannel(PipelineNode):
 
     def __str__(self):
         return f"{self.left!s} | {self.right!s}"
+
+    def poll(self):
+        """
+        Check if the child processes have terminated.  Returns the exit code of
+        processes that have completed, returns None for processes that have not
+        completed.
+
+        Returns:
+            list of (int or None):
+                A list with one element per child process containing either an
+                integer exit code for completed processes or None for
+                incomplete processes.  
+        """
+
+        ret = []
+        ret.extend(self.left.poll())
+        ret.extend(self.right.poll())
+
+        return ret
 
     async def wait(self):
         """
@@ -150,6 +194,26 @@ class PipelineProcess(PipelineNode):
             close_fds = True
         )
 
+    def poll(self):
+        """
+        Check if the child processes have terminated.  Returns the exit code of
+        processes that have completed, returns None for processes that have not
+        completed.
+
+        Raises:
+            RuntimeError: when called before self.run()
+
+        Returns:
+            list of (int or None):
+                A list with one element per child process containing either an
+                integer exit code for completed processes or None for
+                incomplete processes.  
+        """
+        if self.proc is None:
+            raise RuntimeError("Cannot poll a process that has not run yet.")
+        else:
+            return [self.proc.poll()]
+
     def __repr__(self):
         return f"PipelineProcess(cwd={self.cwd!r}, args={self.args!r}, env={self.environment!r}, stdin_stream={self.stdin_stream!r}, stdout_stream={self.stdout_stream!r}, stderr_stream={self.stderr_stream!r})" #pylint: disable=line-too-long
 
@@ -160,5 +224,15 @@ class PipelineProcess(PipelineNode):
         """
         Blocks until the subprocess is completed and returns its returncode
         within a one-element list.
+
+        Raises:
+            RuntimeError: when called before self.run()
+
+        Returns:
+            list of int:
+                A list of one integer
         """
-        return [await self.proc.wait()]
+        if self.proc is None:
+            raise RuntimeError("Cannot wait on a process that has not run yet.")
+        else:
+            return [await self.proc.wait()]
