@@ -159,8 +159,8 @@ class PipelineProcess(PipelineNode):
             (including the base command).
         env (dict of str): The environment variables for the process
         stdin_stream (Stream): The Stream whose .reader() is used as stdin
-        stdout_stream (Stream): The Stream whose .reader() is used as stdout
-        stderr_stream (Stream): The Stream whose .reader() is used as stderr
+        stdout_stream (Stream): The Stream whose .writer() is used as stdout
+        stderr_stream (Stream): The Stream whose .writer() is used as stderr
 
     Raises:
         AssertionError: When len(args) <= 0
