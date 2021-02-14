@@ -16,6 +16,44 @@ __all__ = []
 
 @export
 @register()
+class TestWait(TmpDirMixin):
+    def runTest(self):
+        cwd = pathlib.Path(self.tmpdir.name)
+        input_file = cwd / "input.txt"
+        output_file = cwd / "output.txt"
+        message = "Hello World!"
+
+        with open(input_file.resolve(), 'w') as fout:
+            fout.write(message)
+
+        stdin_factory = FileStreamFactory(input_file, 'r')
+        stdout_factory = FileStreamFactory(output_file, 'w')
+        null_factory = NullStreamFactory()
+
+        cat1 = PipelineProcessFactory(which('cat')).stdin(stdin_factory)
+        cat2 = PipelineProcessFactory(which('cat')).stdout(stdout_factory)
+        false = PipelineProcessFactory(which('false'))
+
+        job = Job(cat1 | cat2 | false)
+        job.run(
+            stdin_factory = null_factory,
+            stdout_factory = null_factory,
+            stderr_factory = null_factory
+        )
+
+        self.assertEqual(job.wait(job.pipeline.left.left, exceptions=False), (0,))
+        self.assertEqual(job.wait(job.pipeline.left.right, exceptions=False), (0,))
+        self.assertEqual(job.wait(job.pipeline.right, exceptions=False), (1,))
+
+        self.assertTrue(output_file.exists())
+
+        with open(output_file.resolve(), 'r') as fin:
+            observed = fin.read()
+
+        self.assertEqual(message, observed)
+
+@export
+@register()
 class TestBuildWithFileStdinStdout(TmpDirMixin):
     def runTest(self):
         cwd = pathlib.Path(self.tmpdir.name)

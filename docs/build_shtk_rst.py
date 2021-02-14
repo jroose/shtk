@@ -30,5 +30,6 @@ for content_name in dir(shtk):
         print("\t:members:")
         print("\t:undoc-members:")
         print("\t:show-inheritance:")
+        print("\t:inherited-members:")
         print("")
 

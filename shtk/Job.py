@@ -4,7 +4,7 @@ import io
 import os
 
 from .util import export
-from .PipelineNode import PipelineProcess
+from .PipelineNode import PipelineProcess, PipelineNode
 
 __all__ = []
 
@@ -45,8 +45,8 @@ class Job:
     """
     Instantiates PipelienNodeFactory instances to run subprocesses.
 
-    Job objects instantiate a PipelineNodeFactory template to create PipelineNodes
-    that run and track the progress of a command pipeline.
+    Job objects instantiate a PipelineNodeFactory template to create
+    PipelineNode's that run and track the progress of a command pipeline.
 
     Args:
         pipeline_factory (PipelineNodeFactory): The command pipeline template
@@ -220,7 +220,7 @@ class Job:
             )
         )
 
-    async def wait_async(self, exceptions=True):
+    async def wait_async(self, pipeline_node=None, exceptions=True):
         """
         Waits for all processes in the pipeline to complete
 
@@ -228,6 +228,7 @@ class Job:
         codes of each command.
 
         Args:
+            pipeline_node (PipelineNode or None): The pipeline node to wait for
             exceptions (Boolean): When true returns an exception when processes
                 exit with non-zero return codes
 
@@ -238,7 +239,13 @@ class Job:
             NonzeroExitCodeException: When a process returns a non-zero return code
 
         """
-        ret = await self.pipeline.wait()
+
+        if pipeline_node is None:
+            ret = await self.pipeline.wait_async()
+        elif isinstance(pipeline_node, PipelineNode):
+            ret = await pipeline_node.wait_async()
+        else:
+            raise ValueError("Argument pipeline_node must be a PipelineNode instance or None")
 
         if exceptions:
             if any(rc != 0 for rc in ret):
@@ -246,7 +253,7 @@ class Job:
 
         return tuple(ret)
 
-    def wait(self, exceptions=True):
+    def wait(self, pipeline_node=None, exceptions=True):
         """
         Synchronous wrapper for the wait_async() method.
 
@@ -254,6 +261,7 @@ class Job:
         codes of each command.
 
         Args:
+            pipeline_node (PipelineNode or None): The pipeline node to wait for
             exceptions (Boolean): When true returns an exception when processes
                 exit with non-zero return codes
 
@@ -264,6 +272,7 @@ class Job:
             NonzeroExitCodeException: When a process returns a non-zero return code
 
         """
+        
         return self.event_loop.run_until_complete(
-            self.wait_async(exceptions=exceptions)
+            self.wait_async(pipeline_node=pipeline_node, exceptions=exceptions)
         )

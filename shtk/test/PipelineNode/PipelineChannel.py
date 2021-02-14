@@ -54,7 +54,7 @@ class TestCreateAndWait(TmpDirMixin):
 
                 stdout_result = p3.reader().read()
 
-                returncodes = await channel.wait()
+                returncodes = await channel.wait_async()
 
             return channel, returncodes, stdout_result
 

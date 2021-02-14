@@ -40,7 +40,7 @@ class TestConstruct(TmpDirMixin):
 
 @export
 @register()
-class TestCreateAndWait(TmpDirMixin):
+class TestCreateAndWaitAsync(TmpDirMixin):
     def runTest(self):
         cwd = pathlib.Path(self.tmpdir.name)
         test_file = cwd / 'tmp.txt'
@@ -57,7 +57,7 @@ class TestCreateAndWait(TmpDirMixin):
                     stderr_stream = null_stream
                 )
 
-            await process.wait()
+            await process.wait_async()
 
             return process
 
@@ -94,7 +94,7 @@ class TestEnvironmentVariableExists(TmpDirMixin):
                     observed = stdout_stream.reader().read()
                     stdout_stream.close()
 
-                await process.wait()
+                await process.wait_async()
 
                 return process, observed
 

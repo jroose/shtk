@@ -64,7 +64,7 @@ class PipelineNode(abc.ABC):
         """
       
     @abc.abstractmethod
-    async def wait(self):
+    async def wait_async(self):
         """
         Waits for left and right PipelineNodes to complete
 
@@ -73,6 +73,18 @@ class PipelineNode(abc.ABC):
                 Combined list of return codes from left (first) and right
                 (later) PipelineNode children.
         """
+#      
+#    def wait(self):
+#        """
+#        Synchronous wrapper for wait_async()
+#
+#        Returns:
+#            list of int:
+#                Combined list of return codes from left (first) and right
+#                (later) PipelineNode children.
+#        """
+#        task = self.wait_async()
+#        return task.get_loop().run_until_complete(task)
 
     @abc.abstractmethod
     def __repr__(self):
@@ -134,7 +146,7 @@ class PipelineChannel(PipelineNode):
 
         return ret
 
-    async def wait(self):
+    async def wait_async(self):
         """
         Waits for left and right PipelineNodes to complete
 
@@ -144,8 +156,14 @@ class PipelineChannel(PipelineNode):
                 (later) PipelineNode children.
         """
         ret = []
-        ret.extend(await self.left.wait())
-        ret.extend(await self.right.wait())
+        ret.extend(await self.left.wait_async())
+        ret.extend(await self.right.wait_async())
+        return ret
+
+    def wait(self):
+        ret = []
+        ret.extend(self.left.wait())
+        ret.extend(self.right.wait())
         return ret
 
 @export
@@ -220,7 +238,7 @@ class PipelineProcess(PipelineNode):
     def __str__(self):
         return f"PipelineProcess(args={self.args!r})"
 
-    async def wait(self):
+    async def wait_async(self):
         """
         Blocks until the subprocess is completed and returns its returncode
         within a one-element list.

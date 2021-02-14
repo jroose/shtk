@@ -15,7 +15,7 @@ __all__ = []
 
 async def build_and_wait(factory, *args, **kwargs):
     obj = await factory.build(*args, **kwargs)
-    return await obj.wait()
+    return await obj.wait_async()
 
 @export
 @register()
