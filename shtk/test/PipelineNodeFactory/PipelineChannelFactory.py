@@ -7,6 +7,7 @@ import unittest
 from ...Stream import NullStream, FileStream
 from ...StreamFactory import NullStreamFactory, FileStreamFactory
 from ...PipelineNodeFactory import PipelineProcessFactory
+from ...Job import Job
 from ...util import which, export
 
 from ..test_util import register, TmpDirMixin
@@ -35,10 +36,11 @@ class TestBuildWithStdinStdout(TmpDirMixin):
         ppf2 = PipelineProcessFactory(which('cat'), cwd='./')
 
         ppf_channel = (ppf1 | ppf2).stdin(input_file.resolve()).stdout(output_file.resolve()).stderr(null_stream)
+        job = Job(ppf_channel, cwd=cwd)
 
-        return_codes = asyncio.run(build_and_wait(
+        return_codes = job.event_loop.run_until_complete(build_and_wait(
             ppf_channel,
-            None
+            job
         ))
 
         self.assertEqual(return_codes, [0, 0])

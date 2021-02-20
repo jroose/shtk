@@ -287,6 +287,7 @@ class PipelineChannelFactory(PipelineNodeFactory):
             ))
 
             return await PipelineChannel.create(
+                job.event_loop, 
                 left = await left_task,
                 right = await right_task
             )
@@ -342,6 +343,7 @@ class PipelineProcessFactory(PipelineNodeFactory):
         cwd = self.cwd or job.cwd
 
         return await PipelineProcess.create(
+            job.event_loop, 
             cwd = cwd,
             env = env,
             args = self.args,

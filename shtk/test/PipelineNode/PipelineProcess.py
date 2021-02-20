@@ -5,6 +5,7 @@ import inspect
 import os
 import pathlib
 import sys
+import time
 import unittest
 
 from ...Stream import NullStream, PipeStream
@@ -63,6 +64,39 @@ class TestCreateAndWaitAsync(TmpDirMixin):
 
         process = asyncio.run(run_and_wait())
 
+        self.assertEqual(process.proc.returncode, 0)
+        self.assertTrue(test_file.exists())
+
+@export
+@register()
+class TestCreatePollWait(TmpDirMixin):
+    def runTest(self):
+        cwd = pathlib.Path(self.tmpdir.name)
+        test_file = cwd / 'tmp.txt'
+        args = [which('touch'), test_file]
+
+        async def run_and_wait():
+            with NullStream(None) as null_stream:
+                process = await PipelineProcess.create(
+                    cwd = cwd.resolve(),
+                    env = {},
+                    args = args,
+                    stdin_stream = null_stream,
+                    stdout_stream = null_stream,
+                    stderr_stream = null_stream
+                )
+
+                time.sleep(0.1)
+                poll_rc = process.poll()
+
+                wait_rc = await process.wait_async()
+
+            return poll_rc, wait_rc, process
+
+        poll_rc, wait_rc, process = asyncio.run(run_and_wait())
+
+        self.assertEqual(poll_rc, process.proc.returncode)
+        self.assertEqual(wait_rc, process.proc.returncode)
         self.assertEqual(process.proc.returncode, 0)
         self.assertTrue(test_file.exists())
 

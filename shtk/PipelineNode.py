@@ -21,11 +21,12 @@ class PipelineNode(abc.ABC):
         stdout_stream (None or Stream): Stream to use for stdout
         stderr_stream (None or Stream): Stream to use for stderr
     """
-    def __init__(self):
+    def __init__(self, event_loop):
         self.children = []
         self.stdin_stream = None
         self.stderr_stream = None
         self.stdout_stream = None
+        self.event_loop = event_loop
 
     @classmethod
     async def create(cls, *args, **kwargs):
@@ -109,8 +110,8 @@ class PipelineChannel(PipelineNode):
         left (PipelineNode): The left PipelineNode
         right (PipelineNode): The right PipelineNode
     """
-    def __init__(self, left, right):
-        super().__init__()
+    def __init__(self, event_loop, left, right):
+        super().__init__(event_loop)
 
         self.left = left
         self.right = right
@@ -183,8 +184,8 @@ class PipelineProcess(PipelineNode):
     Raises:
         AssertionError: When len(args) <= 0
     """
-    def __init__(self, cwd, args, env, stdin_stream, stdout_stream, stderr_stream):
-        super().__init__()
+    def __init__(self, event_loop, cwd, args, env, stdin_stream, stdout_stream, stderr_stream):
+        super().__init__(event_loop)
 
         self.cwd = cwd
         self.args = args
@@ -209,7 +210,8 @@ class PipelineProcess(PipelineNode):
             cwd = self.cwd,
             env = self.environment,
             restore_signals = True,
-            close_fds = True
+            close_fds = True,
+            loop = self.event_loop
         )
 
     def poll(self):
@@ -230,7 +232,7 @@ class PipelineProcess(PipelineNode):
         if self.proc is None:
             raise RuntimeError("Cannot poll a process that has not run yet.")
         else:
-            return [self.proc.poll()]
+            return [self.proc.returncode]
 
     def __repr__(self):
         return f"PipelineProcess(cwd={self.cwd!r}, args={self.args!r}, env={self.environment!r}, stdin_stream={self.stdin_stream!r}, stdout_stream={self.stdout_stream!r}, stderr_stream={self.stderr_stream!r})" #pylint: disable=line-too-long
