@@ -29,10 +29,11 @@ class TestBuild(TmpDirMixin):
 
         ppf = PipelineProcessFactory(which('touch'), cwd='./')
         ppf = ppf(tmp_file.resolve())
+        job = Job(None, cwd=cwd)
 
-        return_codes = asyncio.run(build_and_wait(
+        return_codes = job.event_loop.run_until_complete(build_and_wait(
             ppf,
-            None,
+            job,
             stdin_stream=null_stream,
             stdout_stream=null_stream,
             stderr_stream=null_stream
@@ -58,9 +59,9 @@ class TestBuildWithExplicitStreamsStdinStdout(TmpDirMixin):
         null_stream = NullStream()
 
         ppf = PipelineProcessFactory(which('cat'), cwd='./')
-        job = Job(ppf, cwd=cwd)
+        job = Job(None, cwd=cwd)
 
-        return_codes = asyncio.run(build_and_wait(
+        return_codes = job.event_loop.run_until_complete(build_and_wait(
             ppf,
             job,
             stdin_stream=stdin_stream,
@@ -88,10 +89,11 @@ class TestBuildWithExplicitStreamsStderr(TmpDirMixin):
         null_stream = NullStream()
 
         ppf = PipelineProcessFactory(which('cat'), input_file.resolve(), cwd='./')
+        job = Job(None, cwd=cwd)
 
-        return_codes = asyncio.run(build_and_wait(
+        return_codes = job.event_loop.run_until_complete(build_and_wait(
             ppf,
-            None,
+            job,
             stdin_stream=null_stream,
             stdout_stream=null_stream,
             stderr_stream=stderr_stream
@@ -123,7 +125,7 @@ class TestBuildWithStreamFactoryStdinStdout(TmpDirMixin):
         ppf = PipelineProcessFactory(which('cat'), cwd='./')
         job = Job(ppf, cwd=cwd)
 
-        return_codes = asyncio.run(build_and_wait(
+        return_codes = job.event_loop.run_until_complete(build_and_wait(
             ppf.stdin(stdin_stream).stdout(stdout_stream).stderr(null_stream),
             job
         ))
@@ -150,7 +152,7 @@ class TestBuildWithStreamFactoryStderr(TmpDirMixin):
         ppf = PipelineProcessFactory(which('cat'), input_file.resolve(), cwd='./')
         job = Job(ppf, cwd=cwd)
 
-        return_codes = asyncio.run(build_and_wait(
+        return_codes = job.event_loop.run_until_complete(build_and_wait(
             ppf.stdin(null_stream).stdout(null_stream).stderr(stderr_stream),
             job
         ))
@@ -181,7 +183,7 @@ class TestBuildWithFilePathStdinStdout(TmpDirMixin):
         ppf = PipelineProcessFactory(which('cat'), cwd='./')
         job = Job(ppf, cwd=cwd)
 
-        return_codes = asyncio.run(build_and_wait(
+        return_codes = job.event_loop.run_until_complete(build_and_wait(
             ppf.stdin(stdin).stdout(stdout).stderr(null),
             job
         ))
@@ -208,7 +210,7 @@ class TestBuildWithFilePathStderr(TmpDirMixin):
         ppf = PipelineProcessFactory(which('cat'), input_file.resolve(), cwd='./')
         job = Job(ppf, cwd=cwd)
 
-        return_codes = asyncio.run(build_and_wait(
+        return_codes = job.event_loop.run_until_complete(build_and_wait(
             ppf.stdin(null).stdout(null).stderr(stderr),
             job
         ))
@@ -239,7 +241,7 @@ class TestBuildWithPathlibStdinStdout(TmpDirMixin):
         ppf = PipelineProcessFactory(which('cat'), cwd='./')
         job = Job(ppf, cwd=cwd)
 
-        return_codes = asyncio.run(build_and_wait(
+        return_codes = job.event_loop.run_until_complete(build_and_wait(
             ppf.stdin(stdin).stdout(stdout).stderr(null),
             job
         ))
@@ -266,7 +268,7 @@ class TestBuildWithPathlibStderr(TmpDirMixin):
         ppf = PipelineProcessFactory(which('cat'), input_file.resolve(), cwd='./')
         job = Job(ppf, cwd=cwd)
 
-        return_codes = asyncio.run(build_and_wait(
+        return_codes = job.event_loop.run_until_complete(build_and_wait(
             ppf.stdin(null).stdout(null).stderr(stderr),
             job
         ))
