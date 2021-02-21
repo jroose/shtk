@@ -74,18 +74,18 @@ class PipelineNode(abc.ABC):
                 Combined list of return codes from left (first) and right
                 (later) PipelineNode children.
         """
-#      
-#    def wait(self):
-#        """
-#        Synchronous wrapper for wait_async()
-#
-#        Returns:
-#            list of int:
-#                Combined list of return codes from left (first) and right
-#                (later) PipelineNode children.
-#        """
-#        task = self.wait_async()
-#        return task.get_loop().run_until_complete(task)
+      
+    def wait(self):
+        """
+        Synchronous wrapper for wait_async()
+
+        Returns:
+            list of int:
+                Combined list of return codes from left (first) and right
+                (later) PipelineNode children.
+        """
+        task = self.wait_async()
+        return task.get_loop().run_until_complete(task)
 
     @abc.abstractmethod
     def __repr__(self):
@@ -191,6 +191,7 @@ class PipelineProcess(PipelineNode):
         self.args = args
         self.environment = dict(env)
         self.proc = None
+        self.wait_future = None
 
         self.stdin_stream = stdin_stream
         self.stdout_stream = stdout_stream
@@ -202,7 +203,7 @@ class PipelineProcess(PipelineNode):
         """
         Runs the process using asyncio.create_subprocess_exec()
         """
-        self.proc = await asyncio.create_subprocess_exec(
+        proc_start = asyncio.create_subprocess_exec(
             *self.args,
             stdin = self.stdin_stream.reader(),
             stdout = self.stdout_stream.writer(),
@@ -213,8 +214,19 @@ class PipelineProcess(PipelineNode):
             close_fds = True,
             loop = self.event_loop
         )
+        
+        print(proc_start)
 
-    def poll(self):
+        self.proc = await proc_start
+
+        self.wait_future = asyncio.shield(
+            self.event_loop.create_task(
+                self.proc.wait()
+            ),
+            loop=self.event_loop
+        )
+
+    def poll(self, timeout=1e-6):
         """
         Check if the child processes have terminated.  Returns the exit code of
         processes that have completed, returns None for processes that have not
@@ -232,7 +244,29 @@ class PipelineProcess(PipelineNode):
         if self.proc is None:
             raise RuntimeError("Cannot poll a process that has not run yet.")
         else:
-            return [self.proc.returncode]
+            if self.wait_future.done():
+                return [self.wait_future.result()]
+            else:
+                try:
+                    quick_wait = asyncio.wait_for(self.wait_future, timeout=timeout, loop=self.event_loop)
+                    return [self.event_loop.run_until_complete(quick_wait)]
+                except asyncio.TimeoutError:
+                    return [None]
+
+    def wait(self, timeout=None):
+        """
+        Blocks until the subprocess is completed and returns its returncode
+        within a one-element list.
+
+        Raises:
+            RuntimeError: when called before self.run()
+
+        Returns:
+            list of int:
+                A list of one integer
+        """
+
+        return self.poll(timeout=timeout)
 
     def __repr__(self):
         return f"PipelineProcess(cwd={self.cwd!r}, args={self.args!r}, env={self.environment!r}, stdin_stream={self.stdin_stream!r}, stdout_stream={self.stdout_stream!r}, stderr_stream={self.stderr_stream!r})" #pylint: disable=line-too-long
@@ -255,4 +289,4 @@ class PipelineProcess(PipelineNode):
         if self.proc is None:
             raise RuntimeError("Cannot wait on a process that has not run yet.")
         else:
-            return [await self.proc.wait()]
+            return [await self.wait_future]

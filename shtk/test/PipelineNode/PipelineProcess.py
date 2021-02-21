@@ -74,14 +74,14 @@ class TestCreateAndWaitAsync(TmpDirMixin):
 
 @export
 @register()
-class TestCreatePollWait(TmpDirMixin):
+class TestCreatePoll(TmpDirMixin):
     def runTest(self):
         cwd = pathlib.Path(self.tmpdir.name)
         test_file = cwd / 'tmp.txt'
         args = [which('touch'), test_file]
         event_loop = asyncio.new_event_loop()
 
-        async def run_and_wait():
+        async def run_and_wait(event_loop):
             with NullStream(None) as null_stream:
                 process = await PipelineProcess.create(
                     event_loop,
@@ -94,17 +94,79 @@ class TestCreatePollWait(TmpDirMixin):
                 )
 
                 time.sleep(0.1)
-                poll_rc = process.poll()
 
-                wait_rc = await process.wait_async()
+            return process
 
-            return poll_rc, wait_rc, process
+        process = event_loop.run_until_complete(run_and_wait(event_loop))
+                
+        poll_rc = process.poll()
+        poll2_rc = process.poll()
 
-        poll_rc, wait_rc, process = event_loop.run_until_complete(run_and_wait())
-
-        self.assertEqual(poll_rc, process.proc.returncode)
-        self.assertEqual(wait_rc, process.proc.returncode)
         self.assertEqual(process.proc.returncode, 0)
+        self.assertEqual(poll_rc, [process.proc.returncode])
+        self.assertEqual(poll2_rc, [process.proc.returncode])
+        self.assertTrue(test_file.exists())
+
+@export
+@register()
+class TestCreatePollFail(TmpDirMixin):
+    def runTest(self):
+        cwd = pathlib.Path(self.tmpdir.name)
+        args = [which('sleep'), "1"]
+        event_loop = asyncio.new_event_loop()
+
+        async def run_and_wait(event_loop):
+            with NullStream(None) as null_stream:
+                process = await PipelineProcess.create(
+                    event_loop,
+                    cwd = cwd.resolve(),
+                    env = {},
+                    args = args,
+                    stdin_stream = null_stream,
+                    stdout_stream = null_stream,
+                    stderr_stream = null_stream
+                )
+
+            return process
+
+        process = event_loop.run_until_complete(run_and_wait(event_loop))
+                
+        poll_rc = process.poll()
+
+        self.assertEqual(process.proc.returncode, None)
+        self.assertEqual(poll_rc, [None])
+
+        self.assertEqual(process.wait(), [0])
+
+@export
+@register()
+class TestCreateWait(TmpDirMixin):
+    def runTest(self):
+        cwd = pathlib.Path(self.tmpdir.name)
+        test_file = cwd / 'tmp.txt'
+        args = [which('touch'), test_file]
+        event_loop = asyncio.new_event_loop()
+
+        async def run_and_wait(event_loop):
+            with NullStream(None) as null_stream:
+                process = await PipelineProcess.create(
+                    event_loop,
+                    cwd = cwd.resolve(),
+                    env = {},
+                    args = args,
+                    stdin_stream = null_stream,
+                    stdout_stream = null_stream,
+                    stderr_stream = null_stream
+                )
+
+            return process
+
+        process = event_loop.run_until_complete(run_and_wait(event_loop))
+                
+        wait_rc = process.wait()
+
+        self.assertEqual(process.proc.returncode, 0)
+        self.assertEqual(wait_rc, [process.proc.returncode])
         self.assertTrue(test_file.exists())
 
 @export
