@@ -8,6 +8,7 @@ shtk.FileStream
 	:members:
 	:undoc-members:
 	:show-inheritance:
+	:inherited-members:
 
 shtk.FileStreamFactory
 ----------------------
@@ -16,6 +17,7 @@ shtk.FileStreamFactory
 	:members:
 	:undoc-members:
 	:show-inheritance:
+	:inherited-members:
 
 shtk.Job
 --------
@@ -24,6 +26,7 @@ shtk.Job
 	:members:
 	:undoc-members:
 	:show-inheritance:
+	:inherited-members:
 
 shtk.ManualStream
 -----------------
@@ -32,6 +35,7 @@ shtk.ManualStream
 	:members:
 	:undoc-members:
 	:show-inheritance:
+	:inherited-members:
 
 shtk.ManualStreamFactory
 ------------------------
@@ -40,6 +44,7 @@ shtk.ManualStreamFactory
 	:members:
 	:undoc-members:
 	:show-inheritance:
+	:inherited-members:
 
 shtk.NonzeroExitCodeException
 -----------------------------
@@ -48,6 +53,7 @@ shtk.NonzeroExitCodeException
 	:members:
 	:undoc-members:
 	:show-inheritance:
+	:inherited-members:
 
 shtk.NullStream
 ---------------
@@ -56,6 +62,7 @@ shtk.NullStream
 	:members:
 	:undoc-members:
 	:show-inheritance:
+	:inherited-members:
 
 shtk.NullStreamFactory
 ----------------------
@@ -64,6 +71,7 @@ shtk.NullStreamFactory
 	:members:
 	:undoc-members:
 	:show-inheritance:
+	:inherited-members:
 
 shtk.PipeStream
 ---------------
@@ -72,6 +80,7 @@ shtk.PipeStream
 	:members:
 	:undoc-members:
 	:show-inheritance:
+	:inherited-members:
 
 shtk.PipeStreamFactory
 ----------------------
@@ -80,6 +89,7 @@ shtk.PipeStreamFactory
 	:members:
 	:undoc-members:
 	:show-inheritance:
+	:inherited-members:
 
 shtk.PipelineChannel
 --------------------
@@ -88,6 +98,7 @@ shtk.PipelineChannel
 	:members:
 	:undoc-members:
 	:show-inheritance:
+	:inherited-members:
 
 shtk.PipelineChannelFactory
 ---------------------------
@@ -96,6 +107,7 @@ shtk.PipelineChannelFactory
 	:members:
 	:undoc-members:
 	:show-inheritance:
+	:inherited-members:
 
 shtk.PipelineNode
 -----------------
@@ -104,6 +116,7 @@ shtk.PipelineNode
 	:members:
 	:undoc-members:
 	:show-inheritance:
+	:inherited-members:
 
 shtk.PipelineNodeFactory
 ------------------------
@@ -112,6 +125,7 @@ shtk.PipelineNodeFactory
 	:members:
 	:undoc-members:
 	:show-inheritance:
+	:inherited-members:
 
 shtk.PipelineProcess
 --------------------
@@ -120,6 +134,7 @@ shtk.PipelineProcess
 	:members:
 	:undoc-members:
 	:show-inheritance:
+	:inherited-members:
 
 shtk.PipelineProcessFactory
 ---------------------------
@@ -128,6 +143,7 @@ shtk.PipelineProcessFactory
 	:members:
 	:undoc-members:
 	:show-inheritance:
+	:inherited-members:
 
 shtk.Shell
 ----------
@@ -136,6 +152,7 @@ shtk.Shell
 	:members:
 	:undoc-members:
 	:show-inheritance:
+	:inherited-members:
 
 shtk.Stream
 -----------
@@ -144,6 +161,7 @@ shtk.Stream
 	:members:
 	:undoc-members:
 	:show-inheritance:
+	:inherited-members:
 
 shtk.StreamFactory
 ------------------
@@ -152,6 +170,7 @@ shtk.StreamFactory
 	:members:
 	:undoc-members:
 	:show-inheritance:
+	:inherited-members:
 
 shtk.util
 ---------
@@ -160,4 +179,5 @@ shtk.util
 	:members:
 	:undoc-members:
 	:show-inheritance:
+	:inherited-members:
 

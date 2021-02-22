@@ -21,11 +21,13 @@ class TestCreateAndWait(TmpDirMixin):
         test_file = 'tmp.txt'
         cat = which('cat')
         message = "Hello World!"
+        event_loop = asyncio.new_event_loop()
 
         async def run_and_wait():
             with PipeStream(None) as p3, NullStream(None) as null_stream:
                 with PipeStream(None) as p1, PipeStream(None) as p2:
                     cat1 = await PipelineProcess.create(
+                        event_loop,
                         cwd = cwd.resolve(),
                         env = {},
                         args = [cat],
@@ -35,6 +37,7 @@ class TestCreateAndWait(TmpDirMixin):
                     )
 
                     cat2 = await PipelineProcess.create(
+                        event_loop,
                         cwd = cwd.resolve(),
                         env = {},
                         args = [cat],
@@ -44,8 +47,9 @@ class TestCreateAndWait(TmpDirMixin):
                     )
 
                     channel = await PipelineChannel.create(
-                        cat1,
-                        cat2
+                        event_loop,
+                        left = cat1,
+                        right = cat2
                     )
 
                     p1.writer().write(message)
@@ -54,11 +58,11 @@ class TestCreateAndWait(TmpDirMixin):
 
                 stdout_result = p3.reader().read()
 
-                returncodes = await channel.wait()
+                returncodes = await channel.wait_async()
 
             return channel, returncodes, stdout_result
 
-        channel, returncodes, stdout_result = asyncio.run(run_and_wait())
+        channel, returncodes, stdout_result = event_loop.run_until_complete(run_and_wait())
 
         processes = [
             channel.left.proc,

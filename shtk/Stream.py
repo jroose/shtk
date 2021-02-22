@@ -5,6 +5,8 @@ input and output streams of subprocesses.
 
 import os
 import pathlib
+import grp
+import pwd
 
 from .util import export
 
@@ -92,7 +94,7 @@ class PipeStream(Stream):
         flags (int): Flags to pass to os.pipe2 in addition to os.O_CLOEXEC
             (Default value = 0).
     """
-    def __init__(self, binary=False, flags=0):
+    def __init__(self, binary=False, flags=0, user=None, group=None):
         self.pipe_r, self.pipe_w = os.pipe2(os.O_CLOEXEC | flags)
 
         os.set_inheritable(self.pipe_r, True)
@@ -104,6 +106,33 @@ class PipeStream(Stream):
         else:
             fileobj_r = os.fdopen(self.pipe_r, 'r')
             fileobj_w = os.fdopen(self.pipe_w, 'w')
+
+        if user is not None:
+            if isinstance(user, str):
+                uid = pwd.getpwnam(user).pw_uid
+            elif isinstance(user, int):
+                uid = user
+            else:
+                raise ValueError("argument user must be int, str, or none")
+        else:
+            uid = os.getuid()
+
+        if group is not None:
+            if isinstance(group, str):
+                gid = grp.getgrnam(group).gr_gid
+            elif isinstance(group, int):
+                gid = group
+            else:
+                raise ValueError("argument group must be int, str, or none")
+        else:
+            gid = os.getgid()
+
+        if user is not None or group is not None:
+            os.fchown(self.pipe_r, uid, gid)
+            os.fchown(self.pipe_w, uid, gid)
+
+        os.fchmod(self.pipe_r, 0o600)
+        os.fchmod(self.pipe_w, 0o600)
 
         super().__init__(fileobj_r=fileobj_r, fileobj_w=fileobj_w)
 
@@ -117,8 +146,16 @@ class FileStream(Stream):
         mode (str): Mode passed to open() when opening the file.  If mode
             contains 'r' then the file will be opened for reading.  If the mode
             contains 'w' or 'a' it will be opened for writing.
+        user (None, int, str): The user that will own the file (if 'w' in
+            mode).  If user is an int, the file will be chown'd to the user
+            whose uid=user.  If user is an str, the file will be chown'd to the
+            user whose name=user.
+        group (None, int, str): The group that will own the file (if 'w' in
+            mode).  If group is an int, the file will be chown'd to the group
+            whose gid=group.  If group is an str, the file will be chown'd to the
+            group whose name=group.
     """
-    def __init__(self, path, mode):
+    def __init__(self, path, mode, user=None, group=None):
         self.path = pathlib.Path(path)
 
         if 'r' in mode:
@@ -130,6 +167,31 @@ class FileStream(Stream):
             fileobj_w = open(self.path.resolve(), mode)
         else:
             fileobj_w = None
+
+        if user is not None:
+            if isinstance(user, str):
+                uid = pwd.getpwnam(user).pw_uid
+            elif isinstance(user, int):
+                uid = user
+            else:
+                raise ValueError("argument user must be int, str, or none")
+        else:
+            uid = os.getuid()
+
+        if group is not None:
+            if isinstance(group, str):
+                gid = grp.getgrnam(group).gr_gid
+            elif isinstance(group, int):
+                gid = group
+            else:
+                raise ValueError("argument group must be int, str, or none")
+        else:
+            gid = os.getgid()
+
+        if user is not None or group is not None:
+            # Only chown the writable files that we create
+            if (fileobj_w is not None) and ('w' in mode): 
+                os.fchown(fileobj_w.fileno(), uid, gid)
 
         super().__init__(fileobj_r, fileobj_w)
 
