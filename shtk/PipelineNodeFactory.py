@@ -287,9 +287,9 @@ class PipelineChannelFactory(PipelineNodeFactory):
             ))
 
             return await PipelineChannel.create(
-                job.event_loop, 
-                left = await left_task,
-                right = await right_task
+                job.event_loop,
+                left=await left_task,
+                right=await right_task
             )
 
 @export
@@ -343,13 +343,13 @@ class PipelineProcessFactory(PipelineNodeFactory):
         cwd = self.cwd or job.cwd
 
         return await PipelineProcess.create(
-            job.event_loop, 
-            cwd = cwd,
-            env = env,
-            args = self.args,
-            stdin_stream = stdin_stream,
-            stdout_stream = stdout_stream,
-            stderr_stream = stderr_stream,
-            user = job.user,
-            group = job.group
+            job.event_loop,
+            cwd=cwd,
+            env=env,
+            args=self.args,
+            stdin_stream=stdin_stream,
+            stdout_stream=stdout_stream,
+            stderr_stream=stderr_stream,
+            user=job.user,
+            group=job.group
         )

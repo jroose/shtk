@@ -87,13 +87,8 @@ class Job:
 
     """
     def __init__(
-        self,
-        pipeline_factory,
-        cwd = None,
-        env = None,
-        event_loop = None,
-        user = None,
-        group = None
+            self, pipeline_factory, cwd=None, env=None, event_loop=None,
+            user=None, group=None
     ):
         if env is None:
             self.environment = {}
@@ -198,9 +193,9 @@ class Job:
                 create the job's default stderr stream.
         """
 
-        stdin_stream=stdin_factory.build(self)
-        stdout_stream=stdout_factory.build(self)
-        stderr_stream=stderr_factory.build(self)
+        stdin_stream = stdin_factory.build(self)
+        stdout_stream = stdout_factory.build(self)
+        stderr_stream = stderr_factory.build(self)
 
         self.pipeline = await self.pipeline_factory.build(
             self,
@@ -288,7 +283,7 @@ class Job:
             NonzeroExitCodeException: When a process returns a non-zero return code
 
         """
-        
+
         return self.event_loop.run_until_complete(
             self.wait_async(pipeline_node=pipeline_node, exceptions=exceptions)
         )

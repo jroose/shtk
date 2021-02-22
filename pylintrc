@@ -14,7 +14,7 @@ ignore=CVS
 
 # Add files or directories matching the regex patterns to the blacklist. The
 # regex matches against base names, not paths.
-ignore-patterns=
+ignore-patterns=shtk/test
 
 # Python code to execute, usually for sys.path manipulation such as
 # pygtk.require().
@@ -142,7 +142,9 @@ disable=print-statement,
 	no-else-return,
         too-few-public-methods,
 	too-many-arguments,
-	wildcard-import
+	wildcard-import,
+	too-many-branches,
+	too-many-instance-attributes
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
@@ -388,7 +390,8 @@ good-names=i,
            shtk,
            rc,
 	   cd,
-           _
+           _,
+	  _default_shell
 
 # Good variable names regexes, separated by a comma. If names match any regex,
 # they will always be accepted
