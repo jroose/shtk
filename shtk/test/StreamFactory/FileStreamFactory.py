@@ -1,6 +1,7 @@
 import unittest
 import pathlib
 
+from ...Job import Job
 from ...StreamFactory import FileStreamFactory
 from ...util import export
 
@@ -16,10 +17,12 @@ class TestRead(TmpDirMixin):
         tmpfile = (cwd / "tmp.txt").resolve()
         message = "Hello World!"
 
+        job = Job(None, cwd=cwd)
+
         with open(tmpfile, 'w') as fout:
             fout.write(message)
 
-        with FileStreamFactory(tmpfile, mode='r').build(None) as fs:
+        with FileStreamFactory(tmpfile, mode='r').build(job) as fs:
             observed = fs.reader().read()
         
         self.assertEqual(message, observed)
@@ -32,7 +35,9 @@ class TestWrite(TmpDirMixin):
         tmpfile = (cwd / "tmp.txt").resolve()
         message = "Hello World!"
 
-        with FileStreamFactory(tmpfile, mode='w').build(None) as fs:
+        job = Job(None, cwd=cwd)
+
+        with FileStreamFactory(tmpfile, mode='w').build(job) as fs:
             fs.writer().write(message)
 
         with open(tmpfile, 'r') as fin:
@@ -48,10 +53,12 @@ class TestAppend(TmpDirMixin):
         tmpfile = (cwd / "tmp.txt").resolve()
         message = "Hello World!"
 
+        job = Job(None, cwd=cwd)
+
         with open(tmpfile, 'w') as fout:
             fout.write(message)
 
-        with FileStreamFactory(tmpfile, mode='a').build(None) as fs:
+        with FileStreamFactory(tmpfile, mode='a').build(job) as fs:
             fs.writer().write(message)
 
         with open(tmpfile, 'r') as fin:

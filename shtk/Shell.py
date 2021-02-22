@@ -363,7 +363,9 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
             pipeline_factory.stdout(PipeStreamFactory()),
             env=self.environment,
             cwd=self.cwd,
-            event_loop=self.event_loop
+            event_loop=self.event_loop,
+            user=self.user,
+            group=self.group
         )
 
         job.run(

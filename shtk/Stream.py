@@ -146,8 +146,16 @@ class FileStream(Stream):
         mode (str): Mode passed to open() when opening the file.  If mode
             contains 'r' then the file will be opened for reading.  If the mode
             contains 'w' or 'a' it will be opened for writing.
+        user (None, int, str): The user that will own the file (if 'w' in
+            mode).  If user is an int, the file will be chown'd to the user
+            whose uid=user.  If user is an str, the file will be chown'd to the
+            user whose name=user.
+        group (None, int, str): The group that will own the file (if 'w' in
+            mode).  If group is an int, the file will be chown'd to the group
+            whose gid=group.  If group is an str, the file will be chown'd to the
+            group whose name=group.
     """
-    def __init__(self, path, mode):
+    def __init__(self, path, mode, user=None, group=None):
         self.path = pathlib.Path(path)
 
         if 'r' in mode:
@@ -159,6 +167,31 @@ class FileStream(Stream):
             fileobj_w = open(self.path.resolve(), mode)
         else:
             fileobj_w = None
+
+        if user is not None:
+            if isinstance(user, str):
+                uid = pwd.getpwnam(user).pw_uid
+            elif isinstance(user, int):
+                uid = user
+            else:
+                raise ValueError("argument user must be int, str, or none")
+        else:
+            uid = os.getuid()
+
+        if group is not None:
+            if isinstance(group, str):
+                gid = grp.getgrnam(group).gr_gid
+            elif isinstance(group, int):
+                gid = group
+            else:
+                raise ValueError("argument group must be int, str, or none")
+        else:
+            gid = os.getgid()
+
+        if user is not None or group is not None:
+            # Only chown the writable files that we create
+            if (fileobj_w is not None) and ('w' in mode): 
+                os.fchown(fileobj_w.fileno(), uid, gid)
 
         super().__init__(fileobj_r, fileobj_w)
 

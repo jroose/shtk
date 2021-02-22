@@ -1,9 +1,11 @@
 import asyncio
+import grp
+import importlib.resources
 import os
 import pathlib
+import pwd
 import sys
 import unittest
-import importlib.resources
 
 from ...Shell import Shell
 from ...util import which, export
@@ -87,7 +89,7 @@ class TestCommandDoesntExist(TmpDirMixin):
 class TestCommandNotExecutable(TmpDirMixin):
     def runTest(self):
         cwd = pathlib.Path(self.tmpdir.name)
-        tmpfile = cwd / "notreadable"
+        tmpfile = cwd / "notexecutable.sh"
 
         tmpfile.touch(mode=0o600)
 
@@ -293,3 +295,134 @@ class TestRunCommandDefaultShell(TmpDirMixin):
 
         self.assertEqual(message, observed)
 
+@export
+@register()
+class TestRunAsDifferentUser(TmpDirMixin):
+    def setUp(self):
+        super().setUp()
+
+        if ((sys.version_info.major, sys.version_info.minor) < (3, 9)):
+            raise unittest.SkipTest("Python version is less than 3.9")
+
+        if os.getuid() != 0:
+            raise unittest.SkipTest("Not running as root")
+
+        def unless_key_error(fun):
+            try:
+                return fun()
+            except KeyError:
+                return None
+
+        self.uid = unless_key_error(lambda: pwd.getpwnam('nobody').pw_uid)
+
+        if self.uid is None:
+            raise unittest.SkipTest("No user exists with name 'nobody'")
+
+    def runTest(self):
+        cwd = pathlib.Path(self.tmpdir.name)
+        outfile = cwd / "result.txt"
+
+        with Shell(cwd=cwd, user=self.uid) as sh:
+            cmd_id = sh.command(which('id'))
+            sh.run(cmd_id('-u').stdout(outfile))
+            with outfile.open('r') as fin:
+                observed_uid = fin.read()
+        self.assertEqual(observed_uid.strip(), str(self.uid))
+        self.assertEqual(outfile.owner(), "nobody")
+
+@export
+@register()
+class TestRunAsDifferentGroup(TmpDirMixin):
+    def setUp(self):
+        super().setUp()
+
+        if ((sys.version_info.major, sys.version_info.minor) < (3, 9)):
+            raise unittest.SkipTest("Python version is less than 3.9")
+
+        if os.getuid() != 0:
+            raise unittest.SkipTest("Not running as root")
+
+        def unless_key_error(fun):
+            try:
+                return fun()
+            except KeyError:
+                return None
+
+        self.gid = unless_key_error(lambda: pwd.getpwnam('nobody').pw_gid)
+
+        if self.gid is None:
+            raise unittest.SkipTest("No group exists with name 'nobody'")
+
+    def runTest(self):
+        cwd = pathlib.Path(self.tmpdir.name)
+        outfile = cwd / "result.txt"
+
+        with Shell(cwd=cwd, group=self.gid) as sh:
+            cmd_id = sh.command(which('id'))
+            sh.run(cmd_id('-g').stdout(outfile))
+            with outfile.open('r') as fin:
+                observed_gid = fin.read()
+        self.assertEqual(observed_gid.strip(), str(self.gid))
+        self.assertEqual(grp.getgrnam(outfile.group()).gr_gid, self.gid)
+
+@export
+@register()
+class TestEvaluateAsDifferentUser(TmpDirMixin):
+    def setUp(self):
+        super().setUp()
+
+        if ((sys.version_info.major, sys.version_info.minor) < (3, 9)):
+            raise unittest.SkipTest("Python version is less than 3.9")
+
+        if os.getuid() != 0:
+            raise unittest.SkipTest("Not running as root")
+
+        def unless_key_error(fun):
+            try:
+                return fun()
+            except KeyError:
+                return None
+
+        self.uid = unless_key_error(lambda: pwd.getpwnam('nobody').pw_uid)
+
+        if self.uid is None:
+            raise unittest.SkipTest("No user exists with name 'nobody'")
+
+    def runTest(self):
+        cwd = pathlib.Path(self.tmpdir.name)
+
+        with Shell(cwd=cwd, user=self.uid) as sh:
+            cmd_id = sh.command(which('id'))
+            observed_uid = sh.evaluate(cmd_id('-u'))
+        self.assertEqual(observed_uid.strip(), str(self.uid))
+
+@export
+@register()
+class TestEvaluateAsDifferentGroup(TmpDirMixin):
+    def setUp(self):
+        super().setUp()
+
+        if ((sys.version_info.major, sys.version_info.minor) < (3, 9)):
+            raise unittest.SkipTest("Python version is less than 3.9")
+
+        if os.getuid() != 0:
+            raise unittest.SkipTest("Not running as root")
+
+        def unless_key_error(fun):
+            try:
+                return fun()
+            except KeyError:
+                return None
+
+        self.gid = unless_key_error(lambda: pwd.getpwnam('nobody').pw_gid)
+
+        if self.gid is None:
+            raise unittest.SkipTest("No group exists with name 'nobody'")
+
+    def runTest(self):
+        cwd = pathlib.Path(self.tmpdir.name)
+
+        with Shell(cwd=cwd, group=self.gid) as sh:
+            cmd_id = sh.command(which('id'))
+            observed_gid = sh.evaluate(cmd_id('-g'))
+        self.assertEqual(observed_gid.strip(), str(self.gid))

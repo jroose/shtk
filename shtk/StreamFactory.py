@@ -97,9 +97,9 @@ class FileStreamFactory(StreamFactory):
         """
 
         if self.partial_path.is_absolute():
-            return FileStream(self.partial_path, self.mode)
+            return FileStream(self.partial_path, self.mode, user=job.user, group=job.group)
         else:
-            return FileStream(job.cwd / self.partial_path, self.mode)
+            return FileStream(job.cwd / self.partial_path, self.mode, user=job.user, group=job.group)
 
 @export
 class NullStreamFactory(StreamFactory):
