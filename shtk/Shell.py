@@ -57,8 +57,8 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
     _thread_vars = collections.defaultdict(dict)
 
     def __init__(
-        self, cwd=None, env=None, umask=None, stdin=None, stdout=None,
-        stderr=None, exceptions=True, user=None, group=None
+            self, cwd=None, env=None, umask=None, stdin=None, stdout=None,
+            stderr=None, exceptions=True, user=None, group=None
     ):
         self.lock = threading.RLock()
         self.exceptions = exceptions
@@ -110,7 +110,7 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
                 stderr = sys.stderr
             self.stderr = stderr
 
-    def command(self, name, user=None):
+    def command(self, name):
         """
         Creates a PipelineProcessFactory suitable for executing a command
 

@@ -190,7 +190,7 @@ class FileStream(Stream):
 
         if user is not None or group is not None:
             # Only chown the writable files that we create
-            if (fileobj_w is not None) and ('w' in mode): 
+            if (fileobj_w is not None) and ('w' in mode):
                 os.fchown(fileobj_w.fileno(), uid, gid)
 
         super().__init__(fileobj_r, fileobj_w)

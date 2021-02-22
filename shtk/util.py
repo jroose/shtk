@@ -7,7 +7,7 @@ import os
 import os.path
 import inspect
 
-__all__ =  ["export"]
+__all__ = ["export"]
 
 def export(obj):
     """
