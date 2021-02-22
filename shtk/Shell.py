@@ -65,8 +65,11 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
         self.event_loop = None
 
         with self.lock:
-            self.user = user
-            self.group = group
+
+            if env is None:
+                self.environment = dict(Shell.get_shell().environment)
+            else:
+                self.environment = dict(env)
 
             if env is None:
                 self.environment = dict(Shell.get_shell().environment)
@@ -74,7 +77,17 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
                 self.environment = dict(env)
 
             if cwd is None:
-                cwd = os.getcwd()
+                cwd = Shell.get_shell().cwd
+
+            if user is None and Shell.get_shell() is not None:
+                user = Shell.get_shell().user
+
+            if group is None and Shell.get_shell() is not None:
+                group = Shell.get_shell().group
+
+            self.user = user
+            self.group = group
+
             self.cwd = pathlib.Path(cwd)
             self.pwd = None
 
@@ -230,8 +243,8 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
             Shell: The most recently entered shell context
         """
         tvars = cls._get_thread_vars()
-        if len(tvars['shell_stack']) == 0:
-            raise RuntimeError("No currently active shell")
+        if ('shell_stack' not in tvars) or (len(tvars['shell_stack']) == 0):
+            return None
         return tvars['shell_stack'][-1]
 
     def __enter__(self):
@@ -363,6 +376,6 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
 
         return ret
 
-_default_shell = Shell(env=os.environ)
+_default_shell = Shell(env=os.environ, cwd=os.getcwd())
 _default_shell.__enter__()
 atexit.register(_default_shell.__exit__, None, None, None)

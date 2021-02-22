@@ -126,7 +126,7 @@ class TestWithEnvironment(TmpDirMixin):
         message = 'Hello World!'
         MESSAGE = 'MESSAGE'
         os.environ[MESSAGE] = message
-        with Shell(env=os.environ) as sh:
+        with Shell(env=os.environ, cwd=os.getcwd()) as sh:
             self.assertEqual(message, sh.getenv(MESSAGE))
             self.assertEqual(num_existing + 1, len(sh.environment))
 
@@ -140,7 +140,7 @@ class TestChangeDirectory(TmpDirMixin):
 
         message = "Hello World!"
 
-        with Shell() as sh:
+        with Shell(cwd=cwd) as sh:
             cat = sh.command('cat')
 
             with (cwd / input_file).open('w') as fout:
@@ -170,7 +170,7 @@ class TestEvaluate(TmpDirMixin):
 
         message = "Hello World!"
 
-        with Shell() as sh:
+        with Shell(cwd=cwd) as sh:
             cat = sh.command('cat')
 
             with (cwd / input_file).open('w') as fout:
@@ -191,7 +191,7 @@ class TestEnvironmentSet(TmpDirMixin):
 
         from .. import test_util
         with importlib.resources.path(test_util.__package__, 'echo_env.py') as echo_env:
-            with Shell() as sh:
+            with Shell(cwd=cwd) as sh:
                 sh.export(
                     MESSAGE = message
                 )
@@ -213,7 +213,7 @@ class TestEnvironmentSetGet(TmpDirMixin):
 
         from .. import test_util
 
-        with Shell() as sh:
+        with Shell(cwd=cwd) as sh:
             sh.export(
                 MESSAGE = message
             )
@@ -234,7 +234,7 @@ class TestChangeDirectoryManager(TmpDirMixin):
 
         os.chdir("/")
 
-        with Shell() as sh:
+        with Shell(cwd=os.getcwd()) as sh:
             cat = sh.command(which('cat'))
 
             with input_file.open('w') as fout:
