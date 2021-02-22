@@ -45,18 +45,29 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
             sys.stderr)
         exceptions (boolean): Whether exceptions should be raised when non-zero
             exit codes are returned by subprocesses.
+        user (None, int, str): Run subprocesses as the given user.  If None,
+            run as same user as this process.  If int, run as user with
+            uid=user.  If str, run as user with name=user. Requires Python >=
+            3.9.
+        group (None, int, str): Run subprocesses as the given group.  If None,
+            run as same group as this process.  If int, run as group with
+            gid=group.  If str, run as group with name=group. Requires Python
+            >= 3.9.
     """
     _thread_vars = collections.defaultdict(dict)
 
     def __init__(
-        self, cwd=None, env=None, umask=None, stdin=None,
-        stdout=None, stderr=None, exceptions=True
+        self, cwd=None, env=None, umask=None, stdin=None, stdout=None,
+        stderr=None, exceptions=True, user=None, group=None
     ):
         self.lock = threading.RLock()
         self.exceptions = exceptions
         self.event_loop = None
 
         with self.lock:
+            self.user = user
+            self.group = group
+
             if env is None:
                 self.environment = dict(Shell.get_shell().environment)
             else:
@@ -101,8 +112,6 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
                 If name is an str, then the name will be passed through
                 os.path.expanduser prior to lookup.
 
-            user: User to sudo to prior to execution (Default value = None)
-
         Returns:
             PipelineProcessFactory:
                 A PipelineProcessFactory node representing the command to be
@@ -135,10 +144,7 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
         if not os.access(command_path, os.X_OK):
             raise RuntimeError(f"{command_path}: is not executable")
 
-        if user is None:
-            return PipelineProcessFactory(command_path)
-        else:
-            return PipelineProcessFactory('sudo', '-u', user, command_path)
+        return PipelineProcessFactory(command_path)
 
     def cd(self, path):
         """
@@ -311,7 +317,9 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
                 pipeline_factory,
                 env=self.environment,
                 cwd=self.cwd,
-                event_loop=self.event_loop
+                event_loop=self.event_loop,
+                user=self.user,
+                group=self.group
             )
             self.event_loop.run_until_complete(
                 run_and_wait(job, exceptions=exceptions, wait=wait)

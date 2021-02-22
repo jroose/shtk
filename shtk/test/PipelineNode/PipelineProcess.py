@@ -4,6 +4,8 @@ import importlib.resources
 import inspect
 import os
 import pathlib
+import pwd
+import signal
 import sys
 import time
 import unittest
@@ -109,6 +111,72 @@ class TestCreatePoll(TmpDirMixin):
 
 @export
 @register()
+class TestCreateTerminatePoll(TmpDirMixin):
+    def runTest(self):
+        cwd = pathlib.Path(self.tmpdir.name)
+        args = [which('sleep'), "1"]
+        event_loop = asyncio.new_event_loop()
+
+        async def run_and_wait(event_loop):
+            with NullStream(None) as null_stream:
+                process = await PipelineProcess.create(
+                    event_loop,
+                    cwd = cwd.resolve(),
+                    env = {},
+                    args = args,
+                    stdin_stream = null_stream,
+                    stdout_stream = null_stream,
+                    stderr_stream = null_stream
+                )
+
+            return process
+
+        process = event_loop.run_until_complete(run_and_wait(event_loop))
+        
+        process.terminate()
+
+        poll_rc = process.poll(0.1)
+
+        self.assertEqual(process.proc.returncode, -signal.SIGTERM)
+        self.assertEqual(poll_rc, [-signal.SIGTERM])
+
+        self.assertEqual(process.wait(), [-signal.SIGTERM])
+
+@export
+@register()
+class TestCreateKillPoll(TmpDirMixin):
+    def runTest(self):
+        cwd = pathlib.Path(self.tmpdir.name)
+        args = [which('sleep'), "1"]
+        event_loop = asyncio.new_event_loop()
+
+        async def run_and_wait(event_loop):
+            with NullStream(None) as null_stream:
+                process = await PipelineProcess.create(
+                    event_loop,
+                    cwd = cwd.resolve(),
+                    env = {},
+                    args = args,
+                    stdin_stream = null_stream,
+                    stdout_stream = null_stream,
+                    stderr_stream = null_stream
+                )
+
+            return process
+
+        process = event_loop.run_until_complete(run_and_wait(event_loop))
+        
+        process.kill()
+
+        poll_rc = process.poll(0.1)
+
+        self.assertEqual(process.proc.returncode, -signal.SIGKILL)
+        self.assertEqual(poll_rc, [-signal.SIGKILL])
+
+        self.assertEqual(process.wait(), [-signal.SIGKILL])
+
+@export
+@register()
 class TestCreatePollFail(TmpDirMixin):
     def runTest(self):
         cwd = pathlib.Path(self.tmpdir.name)
@@ -130,13 +198,110 @@ class TestCreatePollFail(TmpDirMixin):
             return process
 
         process = event_loop.run_until_complete(run_and_wait(event_loop))
-                
+        
         poll_rc = process.poll()
 
         self.assertEqual(process.proc.returncode, None)
         self.assertEqual(poll_rc, [None])
 
         self.assertEqual(process.wait(), [0])
+
+@export
+@register()
+class TestCreateWithDifferentUser(TmpDirMixin):
+    def setUp(self):
+        super().setUp()
+
+        if ((sys.version_info.major, sys.version_info.minor) < (3, 9)):
+            raise unittest.SkipTest("Python version is less than 3.9")
+
+        if os.getuid() != 0:
+            raise unittest.SkipTest("Not running as root")
+
+        def unless_key_error(fun):
+            try:
+                return fun()
+            except KeyError:
+                return None
+
+        self.uid = unless_key_error(lambda: pwd.getpwnam('nobody').pw_uid)
+
+        if self.uid is None:
+            raise unittest.SkipTest("No user exists with name 'nobody'")
+
+    def runTest(self):
+        cwd = pathlib.Path(self.tmpdir.name)
+        args = [which('id'), '-u']
+        event_loop = asyncio.new_event_loop()
+
+        async def run_and_wait(event_loop):
+            with NullStream(None) as null_stream, PipeStream(None) as stdout_stream:
+                process = await PipelineProcess.create(
+                    event_loop,
+                    cwd = cwd.resolve(),
+                    env = {},
+                    args = args,
+                    stdin_stream = null_stream,
+                    stdout_stream = stdout_stream,
+                    stderr_stream = null_stream,
+                    user = 'nobody'
+                )
+                stdout_stream.close_writer()
+
+                await process.wait_async()
+                return stdout_stream.reader().read()
+
+        observed_uid = event_loop.run_until_complete(run_and_wait(event_loop))
+        self.assertEqual(observed_uid.strip(), str(self.uid))
+
+@export
+@register()
+class TestCreateWithDifferentGroup(TmpDirMixin):
+    def setUp(self):
+        super().setUp()
+
+        if ((sys.version_info.major, sys.version_info.minor) < (3, 9)):
+            raise unittest.SkipTest("Python version is less than 3.9")
+
+        if os.getuid() != 0:
+            raise unittest.SkipTest("Not running as root")
+
+        def unless_key_error(fun):
+            try:
+                return fun()
+            except KeyError:
+                return None
+
+        self.gid = unless_key_error(lambda: pwd.getpwnam('nobody').pw_gid)
+
+        if self.gid is None:
+            raise unittest.SkipTest("No group exists with name 'nobody'")
+
+    def runTest(self):
+        cwd = pathlib.Path(self.tmpdir.name)
+        args = [which('id'), '-g']
+        event_loop = asyncio.new_event_loop()
+
+        async def run_and_wait(event_loop):
+            with NullStream(None) as null_stream, PipeStream(None) as stdout_stream:
+                process = await PipelineProcess.create(
+                    event_loop,
+                    cwd = cwd.resolve(),
+                    env = {},
+                    args = args,
+                    stdin_stream = null_stream,
+                    stdout_stream = stdout_stream,
+                    stderr_stream = null_stream,
+                    group = self.gid
+                )
+                stdout_stream.close_writer()
+
+                await process.wait_async()
+                return stdout_stream.reader().read()
+
+        observed_gid = event_loop.run_until_complete(run_and_wait(event_loop))
+        self.assertEqual(observed_gid.strip(), str(self.gid))
+        
 
 @export
 @register()

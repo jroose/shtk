@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """Custom test harness for shtk"""
 
+import os
 import unittest
 import coverage
 import pathlib
 
 def main():
-    testsdir = pathlib.Path('./shtk/test')
+    testsdir = pathlib.Path('./shtk/test').resolve()
     packagedir = testsdir.parent
 
-    covdir = pathlib.Path("./coverage")
+    covdir = pathlib.Path("./coverage").resolve()
     covdir.mkdir(exist_ok=True)
 
     covhtml = covdir / "html"
@@ -39,7 +40,7 @@ def main():
     runner.run(suite)
     cov.stop()
     cov.save()
-    cov.html_report(directory=str(covhtml.resolve()))
+    cov.html_report(directory=str(covhtml))
 
 main()
 

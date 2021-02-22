@@ -30,12 +30,13 @@ class TmpDirMixin(unittest.TestCase):
     def setUp(self):
         """Create the temporary directory"""
         super().setUp()
+        self.old_cwd = os.getcwd()
         self.tmpdir = tempfile.TemporaryDirectory()
-        self.prevcwd = os.getcwd()
-        os.chdir(self.tmpdir.name)
+        os.chdir(self.tmpdir.__enter__())
 
     def tearDown(self):
         """Delete the temporary directory"""
-        os.chdir(self.prevcwd)
+        os.chdir(self.old_cwd)
+        self.tmpdir.__exit__(None, None, None)
         self.tmpdir.cleanup()
         super().tearDown()

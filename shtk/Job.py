@@ -58,6 +58,12 @@ class Job:
         event_loop (None or asyncio.AbstractEventLoop): The event loop to use
             for asyncio based processing.  If None is passed a new event loop
             is created from asyncio.new_event_loop() instead.
+        user (None, int, or str): The user that will be used to setreuid() any
+            child processes.  The behavior is the same as that of the user arg
+            to subprocess.Popen().
+        group (None, int, or str): The user that will be used to setregid() any
+            child processes.  The behavior is the same as that of the group arg
+            to subprocess.Popen().
 
     Attributes:
         cwd (str or Pathlib.Path): The current working directory in which to
@@ -71,6 +77,12 @@ class Job:
             PipelineFactory.build in run().
         pipeline_factory (PipelineNodeFactory): The command pipeline template
             that will be instantiated by the Job instance.
+        user (None, int, or str): The user that will be used to setreuid() any
+            child processes.  The behavior is the same as that of the user arg
+            to subprocess.Popen().
+        group (None, int, or str): The user that will be used to setregid() any
+            child processes.  The behavior is the same as that of the group arg
+            to subprocess.Popen().
 
 
     """
@@ -79,7 +91,9 @@ class Job:
         pipeline_factory,
         cwd = None,
         env = None,
-        event_loop = None
+        event_loop = None,
+        user = None,
+        group = None
     ):
         if env is None:
             self.environment = {}
@@ -88,6 +102,8 @@ class Job:
 
         self.pipeline_factory = pipeline_factory
         self.pipeline = None
+        self.user = user
+        self.group = group
 
         if event_loop is None:
             self.event_loop = asyncio.new_event_loop()
@@ -190,7 +206,7 @@ class Job:
             self,
             stdin_stream=stdin_stream,
             stdout_stream=stdout_stream,
-            stderr_stream=stderr_stream,
+            stderr_stream=stderr_stream
         )
 
         stdin_stream.close_reader()

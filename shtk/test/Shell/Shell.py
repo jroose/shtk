@@ -100,12 +100,15 @@ class TestCommandNotExecutable(TmpDirMixin):
 class TestCommandNotReadable(TmpDirMixin):
     def runTest(self):
         cwd = pathlib.Path(self.tmpdir.name)
-        tmpfile = cwd / "notreadable"
+        tmpfile = cwd / "notreadable.sh"
 
         tmpfile.touch(mode=0o300)
 
         with Shell(cwd=cwd) as sh:
-            with self.assertRaises(RuntimeError):
+            if os.getuid() != 0:
+                with self.assertRaises(RuntimeError):
+                    sh.command(f"./{tmpfile.name}")
+            else:
                 sh.command(f"./{tmpfile.name}")
 
 @export

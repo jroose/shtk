@@ -5,6 +5,8 @@ input and output streams of subprocesses.
 
 import os
 import pathlib
+import grp
+import pwd
 
 from .util import export
 
@@ -92,7 +94,7 @@ class PipeStream(Stream):
         flags (int): Flags to pass to os.pipe2 in addition to os.O_CLOEXEC
             (Default value = 0).
     """
-    def __init__(self, binary=False, flags=0):
+    def __init__(self, binary=False, flags=0, user=None, group=None):
         self.pipe_r, self.pipe_w = os.pipe2(os.O_CLOEXEC | flags)
 
         os.set_inheritable(self.pipe_r, True)
@@ -104,6 +106,33 @@ class PipeStream(Stream):
         else:
             fileobj_r = os.fdopen(self.pipe_r, 'r')
             fileobj_w = os.fdopen(self.pipe_w, 'w')
+
+        if user is not None:
+            if isinstance(user, str):
+                uid = pwd.getpwnam(user).pw_uid
+            elif isinstance(user, int):
+                uid = user
+            else:
+                raise ValueError("argument user must be int, str, or none")
+        else:
+            uid = os.getuid()
+
+        if group is not None:
+            if isinstance(group, str):
+                gid = grp.getgrnam(group).gr_gid
+            elif isinstance(group, int):
+                gid = group
+            else:
+                raise ValueError("argument group must be int, str, or none")
+        else:
+            gid = os.getgid()
+
+        if user is not None or group is not None:
+            os.fchown(self.pipe_r, uid, gid)
+            os.fchown(self.pipe_w, uid, gid)
+
+        os.fchmod(self.pipe_r, 0o600)
+        os.fchmod(self.pipe_w, 0o600)
 
         super().__init__(fileobj_r=fileobj_r, fileobj_w=fileobj_w)
 

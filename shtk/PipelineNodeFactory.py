@@ -349,5 +349,7 @@ class PipelineProcessFactory(PipelineNodeFactory):
             args = self.args,
             stdin_stream = stdin_stream,
             stdout_stream = stdout_stream,
-            stderr_stream = stderr_stream
+            stderr_stream = stderr_stream,
+            user = job.user,
+            group = job.group
         )
