@@ -86,13 +86,20 @@ class Stream:
 @export
 class PipeStream(Stream):
     """
-    Creates an os.pipe suitable for communicating between processes
+    Creates an os.pipe2() suitable for communicating between processes
 
     Args:
         binary (boolean): Whether the streams should be opened in binary mode
             (Default value = False).
         flags (int): Flags to pass to os.pipe2 in addition to os.O_CLOEXEC
             (Default value = 0).
+        user (None, int, str): The user that will own the pipe.  If user is an
+            int, the file will be chown'd to the user whose uid=user.  If user
+            is an str, the file will be chown'd to the user whose name=user.
+        group (None, int, str): The group that will own the pipe.  If group is
+            an int, the file will be chown'd to the group whose gid=group.  If
+            group is an str, the file will be chown'd to the group whose
+            name=group.
     """
     def __init__(self, binary=False, flags=0, user=None, group=None):
         self.pipe_r, self.pipe_w = os.pipe2(os.O_CLOEXEC | flags)
