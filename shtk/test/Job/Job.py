@@ -1,13 +1,15 @@
 import asyncio
 import os
 import pathlib
+import signal
 import sys
+import time
 import unittest
 
 from ...Job import Job, NonzeroExitCodeException
 from ...Stream import NullStream, FileStream
 from ...StreamFactory import NullStreamFactory, FileStreamFactory, PipeStreamFactory
-from ...PipelineNodeFactory import PipelineProcessFactory
+from ...PipelineNodeFactory import PipelineProcessFactory, PipelineChannelFactory
 from ...util import which, export
 
 from ..test_util import register, TmpDirMixin
@@ -176,3 +178,64 @@ class TestBuildWithNonexistentFileWithException(TmpDirMixin):
         with self.assertRaises(NonzeroExitCodeException):
             job.wait()
 
+@export
+@register()
+class TestJobTerminate(TmpDirMixin):
+    def runTest(self):
+        cwd = pathlib.Path(self.tmpdir.name)
+
+        job = Job(
+            PipelineChannelFactory(
+                PipelineProcessFactory(
+                    which('sleep')
+                )('1'),
+                PipelineProcessFactory(
+                    which('sleep')
+                )('10')
+            )
+        )
+
+        job.run(
+            stdin_factory = NullStreamFactory(),
+            stdout_factory = NullStreamFactory(),
+            stderr_factory = NullStreamFactory()
+        )
+
+        time.sleep(1.1)
+
+        job.terminate()
+
+        return_codes = job.wait(exceptions=False)
+
+        self.assertEqual(return_codes, (0, -signal.SIGTERM))
+
+@export
+@register()
+class TestJobKill(TmpDirMixin):
+    def runTest(self):
+        cwd = pathlib.Path(self.tmpdir.name)
+
+        job = Job(
+            PipelineChannelFactory(
+                PipelineProcessFactory(
+                    which('sleep')
+                )('1'),
+                PipelineProcessFactory(
+                    which('sleep')
+                )('10')
+            )
+        )
+
+        job.run(
+            stdin_factory = NullStreamFactory(),
+            stdout_factory = NullStreamFactory(),
+            stderr_factory = NullStreamFactory()
+        )
+
+        time.sleep(1.1)
+
+        job.kill()
+
+        return_codes = job.wait(exceptions=False)
+
+        self.assertEqual(return_codes, (0, -signal.SIGKILL))

@@ -2,6 +2,7 @@
 import asyncio
 import io
 import os
+import signal
 
 from .util import export
 from .PipelineNode import PipelineProcess, PipelineNode
@@ -152,31 +153,6 @@ class Job:
         else:
             return None
 
-    def get_process_nodes(self, pipeline_node=None):
-        """
-        Gathers the PipelineProcess nodes instantiated for the pipeline.
-
-        Args:
-            pipeline_node (PipelineNode): Should initially be None, used for recursion (Default
-                value = None)
-
-        Returns:
-            The complete list of PipelineProcess objects in use by the
-            pipeline.
-
-        """
-        if pipeline_node is None:
-            pipeline_node = self.pipeline
-
-        ret = []
-        if isinstance(pipeline_node, PipelineProcess):
-            ret.append(pipeline_node)
-        else:
-            for child in pipeline_node.children:
-                ret.extend(self.get_process_nodes(child))
-
-        return ret
-
     async def run_async(self, stdin_factory, stdout_factory, stderr_factory):
         """
         Creates and runs a new pipeline
@@ -192,6 +168,9 @@ class Job:
             stderr_factory (StreamFactory): the StreamFactory to instantiate to
                 create the job's default stderr stream.
         """
+
+        if self.pipeline is not None:
+            raise RuntimeError("Jobs can only be run once.  Use retry() to run the job again.")
 
         stdin_stream = stdin_factory.build(self)
         stdout_stream = stdout_factory.build(self)
@@ -248,10 +227,13 @@ class Job:
 
         Raises:
             NonzeroExitCodeException: When a process returns a non-zero return code
+            RuntimeError: When called on a Job that has not invoked Job.run()
 
         """
 
         if pipeline_node is None:
+            if self.pipeline is None:
+                raise RuntimeError("Cannot wait for a Job that has not yet called Job.run()")
             ret = await self.pipeline.wait_async()
         elif isinstance(pipeline_node, PipelineNode):
             ret = await pipeline_node.wait_async()
@@ -260,7 +242,7 @@ class Job:
 
         if exceptions:
             if any(rc != 0 for rc in ret):
-                raise NonzeroExitCodeException(self.get_process_nodes())
+                raise NonzeroExitCodeException(x for x in self.pipeline._flatten_children())
 
         return tuple(ret)
 
@@ -287,3 +269,24 @@ class Job:
         return self.event_loop.run_until_complete(
             self.wait_async(pipeline_node=pipeline_node, exceptions=exceptions)
         )
+
+    def send_signal(self, signum): #pylint: disable=no-self-use
+        """
+        Sends a signal to all child ProcessNode processes.
+
+        Args:
+            signum (int): the signal to send.
+        """
+        self.pipeline.send_signal(signum)
+
+    def terminate(self):
+        """
+        Sends a signal.SIGTERM to all child ProcessNode processes.
+        """
+        self.send_signal(signal.SIGTERM)
+
+    def kill(self):
+        """
+        Sends a signal.SIGKILL to all child ProcessNode processes.
+        """
+        self.send_signal(signal.SIGKILL)

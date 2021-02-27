@@ -6,6 +6,7 @@ Shells.
 import abc
 import asyncio
 import signal
+import subprocess
 import sys
 
 from .util import export
@@ -73,8 +74,15 @@ class PipelineNode(abc.ABC):
         Args:
             signum (int): the signal to send.
         """
-        for child in self._flatten_children():
-            child.proc.send_signal(signum)
+
+        poll_result = self.poll()
+
+        for child, rc in zip(self._flatten_children(), poll_result):
+            if rc is None:
+                try:
+                    child.proc.send_signal(signum)
+                except subprocess.ProcessLookupError:
+                    pass
 
     def terminate(self):
         """
@@ -213,45 +221,6 @@ class PipelineChannel(PipelineNode):
 
     def __str__(self):
         return f"{self.left!s} | {self.right!s}"
-
-#    def poll(self):
-#        """
-#        Check if the child ProcessNodes have terminated.  Returns the exit code of
-#        processes that have completed, returns None for processes that have not
-#        completed.
-#
-#        Returns:
-#            list of (int or None):
-#                A list with one element per child process containing either an
-#                integer exit code for completed processes or None for
-#                incomplete processes.
-#        """
-#
-#        ret = []
-#        ret.extend(self.left.poll())
-#        ret.extend(self.right.poll())
-#
-#        return ret
-#
-#    async def wait_async(self):
-#        """
-#        Waits for left and right PipelineNodes to complete
-#
-#        Returns:
-#            list of int:
-#                Combined list of return codes from left (first) and right
-#                (later) PipelineNode children.
-#        """
-#        ret = []
-#        ret.extend(await self.left.wait_async())
-#        ret.extend(await self.right.wait_async())
-#        return ret
-#
-#    def wait(self):
-#        ret = []
-#        ret.extend(self.left.wait())
-#        ret.extend(self.right.wait())
-#        return ret
 
 @export
 class PipelineProcess(PipelineNode):
