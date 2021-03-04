@@ -7,6 +7,13 @@ Welcome to SHTK's documentation!
 ================================
 
 .. toctree::
-   :maxdepth: 2
-   
-   shtk
+    :maxdepth: 2
+    
+    Shell
+    Job
+    StreamFactory
+    Stream
+    PipelineNodeFactory
+    PipelineNode
+    Exceptions
+

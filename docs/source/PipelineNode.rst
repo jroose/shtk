@@ -10,6 +10,9 @@ individual process that is part of the pipeline.
 PipelineNode instances can be used to communicate, start, and stop individual
 processes within a process pipeline.
 
+PipelineNode classes are typically instantiated by other elements of SHTK,
+rather than being manually instantiated by the end user.
+
 shtk.PipelineNode
 -----------------
 

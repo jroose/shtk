@@ -5,6 +5,9 @@ the process, one for writing data to the process) used for communication with
 running processes.  If a stream is one way (e.g. FileStream) then the
 underlying file-like objects reader or writer may be handles to os.devnull.
 
+shtk.Stream instances are usually constructed internally within SHTK, rather
+than being directly instantiated by the end user.
+
 shtk.Stream
 -----------
 
@@ -49,4 +52,3 @@ shtk.PipeStream
 	:undoc-members:
 	:show-inheritance:
 	:inherited-members:
-
