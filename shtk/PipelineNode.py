@@ -6,7 +6,6 @@ Shells.
 import abc
 import asyncio
 import signal
-import subprocess
 import sys
 
 from .util import export
@@ -57,11 +56,20 @@ class PipelineNode(abc.ABC):
     async def _get_return_code(rc_list, idx, coro):
         rc_list[idx] = await coro
 
-    def _flatten_children(self):
+    def flatten_children(self):
+        """
+        Flattens the PipelineNode DAG into a list of PipelineProcess objects
+        using a depth-first search.
+
+        Returns:
+            list of PipelineProcess:
+                All child PipelineProcess nodes
+        """
+
         ret = []
         if len(self.children) > 0:
             for child in self.children:
-                ret.extend(PipelineNode._flatten_children(child))
+                ret.extend(PipelineNode.flatten_children(child))
         else:
             ret.append(self)
 
@@ -77,11 +85,11 @@ class PipelineNode(abc.ABC):
 
         poll_result = self.poll()
 
-        for child, rc in zip(self._flatten_children(), poll_result):
+        for child, rc in zip(self.flatten_children(), poll_result):
             if rc is None:
                 try:
                     child.proc.send_signal(signum)
-                except subprocess.ProcessLookupError:
+                except ProcessLookupError:
                     pass
 
     def terminate(self):
@@ -111,7 +119,7 @@ class PipelineNode(abc.ABC):
         ret.clear()
 
         tasks = []
-        for it_child, child in enumerate(self._flatten_children()):
+        for it_child, child in enumerate(self.flatten_children()):
             ret.append(None)
             coro = self._get_return_code(ret, it_child, child.proc.wait())
             task = self.event_loop.create_task(coro)

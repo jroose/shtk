@@ -5,7 +5,7 @@ import os
 import signal
 
 from .util import export
-from .PipelineNode import PipelineProcess, PipelineNode
+from .PipelineNode import PipelineNode
 
 __all__ = []
 
@@ -242,7 +242,7 @@ class Job:
 
         if exceptions:
             if any(rc != 0 for rc in ret):
-                raise NonzeroExitCodeException(x for x in self.pipeline._flatten_children())
+                raise NonzeroExitCodeException(x for x in self.pipeline.flatten_children())
 
         return tuple(ret)
 
