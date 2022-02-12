@@ -157,8 +157,7 @@ class PipelineNode(abc.ABC):
             self.event_loop.run_until_complete(
                 asyncio.wait_for(
                     self.poll_async(ret),
-                    timeout=timeout,
-                    loop=self.event_loop
+                    timeout=timeout
                 )
             )
         except asyncio.TimeoutError:
@@ -247,13 +246,15 @@ class PipelineProcess(PipelineNode):
             asyncio.create_subprocess_exec().  Requires Python >= 3.9.
         group (None, int, or str): The group to pass to
             asyncio.create_subprocess_exec().  Requires Python >= 3.9.
+        close_fds (bool): If true, close_fds will be passed to the equivalent
+            of subprocess.Popen().
 
     Raises:
         AssertionError: When len(args) <= 0
     """
     def __init__(
             self, event_loop, cwd, args, env, stdin_stream, stdout_stream,
-            stderr_stream, user=None, group=None
+            stderr_stream, user=None, group=None, close_fds=True
         ):
         super().__init__(event_loop)
 
@@ -264,6 +265,7 @@ class PipelineProcess(PipelineNode):
         self.wait_future = None
         self.user = user
         self.group = group
+        self.close_fds = close_fds
 
         self.stdin_stream = stdin_stream
         self.stdout_stream = stdout_stream
@@ -295,8 +297,7 @@ class PipelineProcess(PipelineNode):
             cwd=self.cwd,
             env=self.environment,
             restore_signals=True,
-            close_fds=True,
-            loop=self.event_loop,
+            close_fds=self.close_fds,
             **extra_kwargs
         )
 

@@ -304,11 +304,14 @@ class PipelineProcessFactory(PipelineNodeFactory):
             instantiated PipelineProcess instances (Default value = {}).
         cwd (str or pathlib.Path): The current working directory for the
             instantiated PipelineProcess instances (Default value = None).
+        close_fds (bool): If true, close_fds will be passed to the equivalent
+            of subprocess.Popen().
     """
-    def __init__(self, *args, env=None, cwd=None):
+    def __init__(self, *args, env=None, cwd=None, close_fds=True):
         super().__init__()
         self.args = args
         self.cwd = cwd
+        self.close_fds = close_fds
 
         if env is None:
             self.environment = {}
@@ -330,15 +333,13 @@ class PipelineProcessFactory(PipelineNodeFactory):
         return PipelineProcessFactory(
             *self.args, *args,
             env=dict(self.environment, **env),
-            cwd=self.cwd
+            cwd=self.cwd,
+            close_fds=self.close_fds
         )
 
     async def build_inner(self, job, stdin_stream, stdout_stream, stderr_stream):
         """Instantiates a PipelineProcess"""
-        if job is not None:
-            env = dict(job.environment, **self.environment)
-        else:
-            env = self.environment
+        env = dict(job.environment, **self.environment)
 
         cwd = self.cwd or job.cwd
 
@@ -351,5 +352,6 @@ class PipelineProcessFactory(PipelineNodeFactory):
             stdout_stream=stdout_stream,
             stderr_stream=stderr_stream,
             user=job.user,
-            group=job.group
+            group=job.group,
+            close_fds=job.close_fds
         )

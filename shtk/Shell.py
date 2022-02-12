@@ -8,9 +8,11 @@ import asyncio
 import atexit
 import collections
 import contextlib
+import json
 import os
 import os.path
 import pathlib
+import shlex
 import subprocess
 import sys
 import threading
@@ -19,6 +21,7 @@ from .Job import Job
 from .util import export, which # pylint: disable=unused-import
 from .PipelineNodeFactory import PipelineProcessFactory
 from .StreamFactory import ManualStreamFactory, PipeStreamFactory
+from ._AsyncUtil import AsyncHelper
 
 __all__ = []
 
@@ -33,7 +36,7 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
 
     Args:
         cwd (str, pathlib.Path): Current working directory for subprocesses.
-        env (boolean): If provided Shell will use these key-value pairs as
+        env (bool): If provided Shell will use these key-value pairs as
             environment variables.  Otherwise Shell inherits from the currently
             active Shell, or _default_shell.
         umask (int): Controls the default umask for subprocesses
@@ -43,7 +46,7 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
             sys.stdout)
         stderr (file-like): Default stderr stream for subprocesses (defaults to
             sys.stderr)
-        exceptions (boolean): Whether exceptions should be raised when non-zero
+        exceptions (bool): Whether exceptions should be raised when non-zero
             exit codes are returned by subprocesses.
         user (None, int, str): Run subprocesses as the given user.  If None,
             run as same user as this process.  If int, run as user with
@@ -269,7 +272,7 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
         tvars = self._get_thread_vars()
         tvars['shell_stack'].pop()
 
-    def __call__(self, *pipeline_factories, exceptions=None, wait=True):
+    def __call__(self, *pipeline_factories, exceptions=None, wait=True, close_fds=True):
         """
         Executes a series of PipelineNodeFactory nodes as subprocesses
 
@@ -279,22 +282,28 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
                 codes (Default value = None)
             wait: Whether the call should block waiting for the subprocesses to
                 exit (Default value = True)
+            close_fds (bool): If true, close_fds will be passed to the equivalent
+                of subprocess.Popen() (Default value = True).
 
         Returns:
             list of int: The return codes of the subprocesses after exiting
         """
-        return self.run(*pipeline_factories, exceptions=exceptions, wait=wait)
+        return self.run(*pipeline_factories, exceptions=exceptions, wait=wait, close_fds=close_fds)
 
-    def run(self, *pipeline_factories, exceptions=None, wait=True):
+    def run(self, *pipeline_factories, exceptions=None, wait=True, close_fds=True):
         """
         Executes a series of PipelineNodeFactory nodes as subprocesses
 
         Args:
-            *pipeline_factories: The PipelineNodeFactory nodes to execute
+            *pipeline_factories: The PipelineNodeFactory nodes to execute.  If
+                multiple arguments are provided, then the commands will run in
+                parallel.
             exceptions: Whether or not to raise exceptions for non-zero exit
-                codes (Default value = None)
+                codes (Default value = None, meaning inherited)
             wait: Whether the call should block waiting for the subprocesses to
                 exit (Default value = True)
+            close_fds (bool): If true, close_fds will be passed to the equivalent
+                of subprocess.Popen() (Default value = True).
 
         Returns:
             list of Job:
@@ -332,7 +341,8 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
                 cwd=self.cwd,
                 event_loop=self.event_loop,
                 user=self.user,
-                group=self.group
+                group=self.group,
+                close_fds=close_fds
             )
             self.event_loop.run_until_complete(
                 run_and_wait(job, exceptions=exceptions, wait=wait)
@@ -341,7 +351,7 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
 
         return ret
 
-    def evaluate(self, pipeline_factory, exceptions=None):
+    def evaluate(self, pipeline_factory, *, exceptions=None):
         """
         Executes a PipelineNodeFactory and returns the stdout text
 
@@ -377,6 +387,103 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
         job.wait(exceptions=exceptions)
 
         return ret
+
+    def _read_env(self, fd_env, pipe_w):
+        os.close(pipe_w)
+        with os.fdopen(fd_env, 'rb') as env_fin:
+            self.environment = json.load(env_fin)
+
+    def source(self, filepath, *, exceptions=None):
+        """
+        Use /bin/sh to source a file, then import the resulting environment as
+        the shtk.Shell's new environment.
+
+        This method uses (approximately) the following kludge:
+
+        .. highlight:: python
+        .. code-block:: python
+
+            q = shlex.quote
+            exec = str(sys.exec or 'python3')
+            kludge = '''
+            import json, os, sys;
+            fout = os.fdopen(int(sys.argv[1]), "w");
+            json.dump(dict(os.environ), fout);
+            fout.close();
+            '''
+            args = (".", q(path), '&&', q(exec), '-c', q(kludge), str(int(pipe_fd)))
+            pipeline_factory = shcmd('-c', " ".join(args))
+            ...
+
+        Args:
+            filepath (str or pathlib.Path): path to file to be sourced.  It
+                will be converted to an absolute path before sourcing for
+                compatability with picky shells (e.g. dash).
+            exceptions (bool): Whether or not to raise exceptions when subprocesses
+                return non-zero return codes (Default value = None)
+
+        Returns:
+            str or bytes:
+                A string generated by the text that the final subprocess writes
+                to stdout
+        """
+        if exceptions is None:
+            exceptions = self.exceptions
+
+        filepath = str(pathlib.Path(filepath).resolve())
+
+        shcmd = self.command('/bin/sh')
+        executable = str(sys.executable or 'python3')
+
+        pipe_r, pipe_w = os.pipe2(os.O_CLOEXEC)
+        os.set_inheritable(pipe_r, False)
+        os.set_inheritable(pipe_w, True)
+
+        quote = shlex.quote
+        python_kludge = '; '.join((
+            'import json, os, sys',
+            'fout=os.fdopen(int(sys.argv[1]), "w")',
+            'json.dump(dict(os.environ), fout)',
+            'fout.close()'
+        ))
+        args = []
+        args.extend(('.', quote(filepath)))
+        args.append('&&')
+        args.extend((quote(executable), '-c'))
+        args.append(quote(python_kludge))
+        args.append(str(int(pipe_w)))
+
+        job = Job(
+            shcmd('-c', " ".join(args)),
+            env=self.environment,
+            cwd=self.cwd,
+            event_loop=self.event_loop,
+            user=self.user,
+            group=self.group,
+            close_fds=False
+        )
+
+        event_loop = self.event_loop or asyncio.new_event_loop()
+        try:
+            event_loop.run_until_complete(
+                job.run_async(
+                    ManualStreamFactory(fileobj_r=self.stdin),
+                    ManualStreamFactory(fileobj_w=self.stdout),
+                    ManualStreamFactory(fileobj_w=self.stderr)
+                )
+            )
+
+            async_helper = AsyncHelper(event_loop)
+            task = async_helper.create_task(job.wait_async(exceptions=exceptions))
+            async_helper.add_reader(pipe_r, self._read_env, pipe_w)
+            async_helper.run()
+
+            exc = task.exception()
+            if exc is not None:
+                raise exc
+        finally:
+            if self.event_loop is None:
+                event_loop.close()
 
 _default_shell = Shell(env=os.environ, cwd=os.getcwd())
 _default_shell.__enter__()
