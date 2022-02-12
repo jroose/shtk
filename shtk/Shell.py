@@ -295,9 +295,11 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
         Executes a series of PipelineNodeFactory nodes as subprocesses
 
         Args:
-            *pipeline_factories: The PipelineNodeFactory nodes to execute
+            *pipeline_factories: The PipelineNodeFactory nodes to execute.  If
+                multiple arguments are provided, then the commands will run in
+                parallel.
             exceptions: Whether or not to raise exceptions for non-zero exit
-                codes (Default value = None)
+                codes (Default value = None, meaning inherited)
             wait: Whether the call should block waiting for the subprocesses to
                 exit (Default value = True)
             close_fds (bool): If true, close_fds will be passed to the equivalent
@@ -349,7 +351,7 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
 
         return ret
 
-    def evaluate(self, pipeline_factory, exceptions=None):
+    def evaluate(self, pipeline_factory, *, exceptions=None):
         """
         Executes a PipelineNodeFactory and returns the stdout text
 
