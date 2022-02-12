@@ -2,6 +2,7 @@
 import asyncio
 import io
 import os
+import shlex
 import signal
 
 from .util import export
@@ -26,12 +27,7 @@ class NonzeroExitCodeException(Exception):
             rc = proc.proc.returncode
             args = []
             for arg in proc.args:
-                arg = str(arg)
-                if any(x in arg for x in " '\"\\"):
-                    arg = repr(arg)
-                    args.append(repr(arg))
-                else:
-                    args.append(arg)
+                args.append(shlex.quote(str(arg)))
 
             print(f"  [{rc:3}] {' '.join(args)}", file=message)
 
@@ -65,6 +61,8 @@ class Job:
         group (None, int, or str): The user that will be used to setregid() any
             child processes.  The behavior is the same as that of the group arg
             to subprocess.Popen().
+        close_fds (bool): If true, close_fds will be passed to the equivalent
+            of subprocess.Popen() (Default value = True).
 
     Attributes:
         cwd (str or Pathlib.Path): The current working directory in which to
@@ -84,12 +82,14 @@ class Job:
         group (None, int, or str): The user that will be used to setregid() any
             child processes.  The behavior is the same as that of the group arg
             to subprocess.Popen().
+        close_fds (bool): If true, close_fds will be passed to the equivalent
+            of subprocess.Popen().
 
 
     """
     def __init__(
             self, pipeline_factory, cwd=None, env=None, event_loop=None,
-            user=None, group=None
+            user=None, group=None, close_fds=True
     ):
         if env is None:
             self.environment = {}
@@ -100,6 +100,7 @@ class Job:
         self.pipeline = None
         self.user = user
         self.group = group
+        self.close_fds = close_fds
 
         if event_loop is None:
             self.event_loop = asyncio.new_event_loop()

@@ -4,7 +4,6 @@ define and run a series of commands called a Pipeline as subprocesses of the
 Python script.
 """
 
-import ast
 import asyncio
 import atexit
 import collections
@@ -16,14 +15,13 @@ import pathlib
 import shlex
 import subprocess
 import sys
-import tempfile
 import threading
 
 from .Job import Job
 from .util import export, which # pylint: disable=unused-import
 from .PipelineNodeFactory import PipelineProcessFactory
 from .StreamFactory import ManualStreamFactory, PipeStreamFactory
-from .async_util import AsyncHelper, run_job
+from ._AsyncUtil import AsyncHelper
 
 __all__ = []
 
@@ -274,7 +272,7 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
         tvars = self._get_thread_vars()
         tvars['shell_stack'].pop()
 
-    def __call__(self, *pipeline_factories, exceptions=None, wait=True):
+    def __call__(self, *pipeline_factories, exceptions=None, wait=True, close_fds=True):
         """
         Executes a series of PipelineNodeFactory nodes as subprocesses
 
@@ -284,13 +282,15 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
                 codes (Default value = None)
             wait: Whether the call should block waiting for the subprocesses to
                 exit (Default value = True)
+            close_fds (bool): If true, close_fds will be passed to the equivalent
+                of subprocess.Popen() (Default value = True).
 
         Returns:
             list of int: The return codes of the subprocesses after exiting
         """
-        return self.run(*pipeline_factories, exceptions=exceptions, wait=wait)
+        return self.run(*pipeline_factories, exceptions=exceptions, wait=wait, close_fds=close_fds)
 
-    def run(self, *pipeline_factories, exceptions=None, wait=True):
+    def run(self, *pipeline_factories, exceptions=None, wait=True, close_fds=True):
         """
         Executes a series of PipelineNodeFactory nodes as subprocesses
 
@@ -300,6 +300,8 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
                 codes (Default value = None)
             wait: Whether the call should block waiting for the subprocesses to
                 exit (Default value = True)
+            close_fds (bool): If true, close_fds will be passed to the equivalent
+                of subprocess.Popen() (Default value = True).
 
         Returns:
             list of Job:
@@ -337,7 +339,8 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
                 cwd=self.cwd,
                 event_loop=self.event_loop,
                 user=self.user,
-                group=self.group
+                group=self.group,
+                close_fds=close_fds
             )
             self.event_loop.run_until_complete(
                 run_and_wait(job, exceptions=exceptions, wait=wait)
@@ -383,29 +386,31 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
 
         return ret
 
-    def _read_env(self, fd):
-        with os.fdopen(fd, 'rb') as fin:
-            self.environment = json.load(fin)
+    def _read_env(self, fd_env, pipe_w):
+        os.close(pipe_w)
+        with os.fdopen(fd_env, 'rb') as env_fin:
+            self.environment = json.load(env_fin)
 
     def source(self, filepath, *, exceptions=None):
         """
         Use /bin/sh to source a file, then import the resulting environment as
-        the shtk.Shell's new environment.  
+        the shtk.Shell's new environment.
 
         This method uses (approximately) the following kludge:
 
         .. highlight:: python
         .. code-block:: python
 
-            shcmd = self.command('/bin/sh')
-            quote = shlex.quote
-            fifo_path = pathlib.Path(tmpdir) / 'env.fifo'
-            os.mkfifo(fifo_path, mode=0o600)
-            executable = str(sys.executable or 'python3')
-            fifo_path_string = ast.unparse(ast.Constant(str(fifo_path)))
-            python_kludge = f'import os, json; fout=open({fifo_path_string}, "w"); json.dump(dict(os.environ), fout); fout.close()'
-            envtrick = " ".join((".", quote(filepath), '&&', quote(executable), '-c', quote(python_kludge)))
-            sh(shcmd('-c', envtrick))
+            q = shlex.quote
+            exec = str(sys.exec or 'python3')
+            kludge = '''
+            import json, os, sys;
+            fout = os.fdopen(int(sys.argv[1]), "w");
+            json.dump(dict(os.environ), fout);
+            fout.close();
+            '''
+            args = (".", q(path), '&&', q(exec), '-c', q(kludge), str(int(pipe_fd)))
+            pipeline_factory = shcmd('-c', " ".join(args))
             ...
 
         Args:
@@ -426,60 +431,57 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
         filepath = str(pathlib.Path(filepath).resolve())
 
         shcmd = self.command('/bin/sh')
-        tmpfifo = None
         executable = str(sys.executable or 'python3')
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            fifo_path = pathlib.Path(tmpdir) / 'env.fifo'
-            fifo_path_string = ast.unparse(ast.Constant(str(fifo_path)))
+        pipe_r, pipe_w = os.pipe2(os.O_CLOEXEC)
+        os.set_inheritable(pipe_r, False)
+        os.set_inheritable(pipe_w, True)
 
-            #TODO: Support user and group changes
-            os.mkfifo(fifo_path, mode=0o600)
+        quote = shlex.quote
+        python_kludge = '; '.join((
+            'import json, os, sys',
+            'fout=os.fdopen(int(sys.argv[1]), "w")',
+            'json.dump(dict(os.environ), fout)',
+            'fout.close()'
+        ))
+        args = []
+        args.extend(('.', quote(filepath)))
+        args.append('&&')
+        args.extend((quote(executable), '-c'))
+        args.append(quote(python_kludge))
+        args.append(str(int(pipe_w)))
 
-            try:
-                quote = shlex.quote
-                python_kludge = f'import os, json; fout=open({fifo_path_string}, "w"); json.dump(dict(os.environ), fout); fout.close()'
-                envtrick = " ".join((".", quote(filepath), '&&', quote(executable), '-c', quote(python_kludge)))
-                pipeline_factory = shcmd('-c', envtrick)
+        job = Job(
+            shcmd('-c', " ".join(args)),
+            env=self.environment,
+            cwd=self.cwd,
+            event_loop=self.event_loop,
+            user=self.user,
+            group=self.group,
+            close_fds=False
+        )
 
-                job = Job(
-                    pipeline_factory,
-                    env=self.environment,
-                    cwd=self.cwd,
-                    event_loop=self.event_loop,
-                    user=self.user,
-                    group=self.group
+        event_loop = self.event_loop or asyncio.new_event_loop()
+        try:
+            event_loop.run_until_complete(
+                job.run_async(
+                    ManualStreamFactory(fileobj_r=self.stdin),
+                    ManualStreamFactory(fileobj_w=self.stdout),
+                    ManualStreamFactory(fileobj_w=self.stderr)
                 )
+            )
 
-                event_loop = self.event_loop or asyncio.new_event_loop()
-                async_helper = AsyncHelper(event_loop)
-                task = async_helper.create_task(
-                    run_job(
-                        job,
-                        stdin=self.stdin,
-                        stdout=self.stdout,
-                        stderr=self.stderr,
-                        exceptions=exceptions
-                    )
-                )
+            async_helper = AsyncHelper(event_loop)
+            task = async_helper.create_task(job.wait_async(exceptions=exceptions))
+            async_helper.add_reader(pipe_r, self._read_env, pipe_w)
+            async_helper.run()
 
-                fifo_fd = os.open(fifo_path, os.O_RDONLY | os.O_NONBLOCK)
-                try:
-                    async_helper.add_reader(fifo_fd, self._read_env)
-                    async_helper.run()
-                    exc = task.exception()
-                    if exc is not None:
-                        raise exc
-                finally:
-                    try:
-                        os.close(fifo_fd)
-                    except OSError:
-                        pass
-
-                    if self.event_loop is None:
-                        event_loop.close()
-            finally:
-                os.unlink(fifo_path)
+            exc = task.exception()
+            if exc is not None:
+                raise exc
+        finally:
+            if self.event_loop is None:
+                event_loop.close()
 
 _default_shell = Shell(env=os.environ, cwd=os.getcwd())
 _default_shell.__enter__()

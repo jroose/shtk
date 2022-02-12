@@ -4,10 +4,13 @@ import importlib.resources
 import os
 import pathlib
 import pwd
+import random
 import sys
 import unittest
 
+from ...Job import NonzeroExitCodeException
 from ...Shell import Shell
+from ...StreamFactory import NullStreamFactory
 from ...util import which, export
 
 from ..test_util import register, TmpDirMixin
@@ -426,3 +429,40 @@ class TestEvaluateAsDifferentGroup(TmpDirMixin):
             cmd_id = sh.command(which('id'))
             observed_gid = sh.evaluate(cmd_id('-g'))
         self.assertEqual(observed_gid.strip(), str(self.gid))
+
+@export
+@register()
+class TestShellSourceSuccess(TmpDirMixin):
+    def setUp(self):
+        super().setUp()
+
+    def runTest(self):
+        cwd = pathlib.Path(self.tmpdir.name)
+        input_file = cwd / 'test.sh'
+        exp_val = random.randint(1024,1024*1024*1024)
+
+        with input_file.open('w') as fout:
+            print(f"""
+TEST={exp_val!s}
+export TEST
+            """.strip(), file=fout)
+
+        with Shell(cwd=cwd) as sh:
+            sh.source(input_file)
+            self.assertEqual(sh.environment.get('TEST'), str(exp_val))
+
+@export
+@register()
+class TestShellSourceFailure(TmpDirMixin):
+    def setUp(self):
+        super().setUp()
+
+    def runTest(self):
+        cwd = pathlib.Path(self.tmpdir.name)
+        input_file = cwd / 'test.sh'
+        exp_val = random.randint(1024,1024*1024*1024)
+
+        with open(os.devnull, 'wb') as devnull:
+            with Shell(cwd=cwd, exceptions=True, stderr=devnull, stdout=devnull) as sh:
+                with self.assertRaises(NonzeroExitCodeException):
+                    sh.source(str(input_file))
