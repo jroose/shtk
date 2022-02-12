@@ -4,12 +4,10 @@ Setup script for SHTK
 """
 
 from setuptools import setup, find_packages
+import versioneer
 
 setup(
-    name='shtk',
-    version='0.9.3',
-    description='Shell Toolkit (SHTK)',
-    author='Jon Roose',
-    author_email='jroose@gmail.com',
+    version=versioneer.get_version(),
+    cmdclass=versioneer.get_cmdclass(),
     packages=find_packages(include=['shtk'], exclude=['shtk.tests', 'shtk.tests.*'])
 )
