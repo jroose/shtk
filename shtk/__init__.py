@@ -9,3 +9,6 @@ from .PipelineNodeFactory import *
 from .Shell import *
 from .Stream import *
 from .StreamFactory import *
+
+from . import _version
+__version__ = _version.get_versions()['version']
