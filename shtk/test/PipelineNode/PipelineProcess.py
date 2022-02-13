@@ -27,7 +27,7 @@ class TestConstruct(TmpDirMixin):
         args = [which('touch'), "tmp.txt"]
         event_loop = asyncio.new_event_loop()
 
-        with NullStream(None) as null_stream:
+        with NullStream() as null_stream:
             process = PipelineProcess(
                 event_loop,
                 cwd = cwd,
@@ -54,7 +54,7 @@ class TestCreateAndWaitAsync(TmpDirMixin):
         event_loop = asyncio.new_event_loop()
 
         async def run_and_wait():
-            with NullStream(None) as null_stream:
+            with NullStream() as null_stream:
                 process = await PipelineProcess.create(
                     event_loop,
                     cwd = cwd.resolve(),
@@ -84,7 +84,7 @@ class TestCreatePoll(TmpDirMixin):
         event_loop = asyncio.new_event_loop()
 
         async def run_and_wait(event_loop):
-            with NullStream(None) as null_stream:
+            with NullStream() as null_stream:
                 process = await PipelineProcess.create(
                     event_loop,
                     cwd = cwd.resolve(),
@@ -118,7 +118,7 @@ class TestCreateTerminatePoll(TmpDirMixin):
         event_loop = asyncio.new_event_loop()
 
         async def run_and_wait(event_loop):
-            with NullStream(None) as null_stream:
+            with NullStream() as null_stream:
                 process = await PipelineProcess.create(
                     event_loop,
                     cwd = cwd.resolve(),
@@ -151,7 +151,7 @@ class TestCreateKillPoll(TmpDirMixin):
         event_loop = asyncio.new_event_loop()
 
         async def run_and_wait(event_loop):
-            with NullStream(None) as null_stream:
+            with NullStream() as null_stream:
                 process = await PipelineProcess.create(
                     event_loop,
                     cwd = cwd.resolve(),
@@ -184,7 +184,7 @@ class TestCreatePollFail(TmpDirMixin):
         event_loop = asyncio.new_event_loop()
 
         async def run_and_wait(event_loop):
-            with NullStream(None) as null_stream:
+            with NullStream() as null_stream:
                 process = await PipelineProcess.create(
                     event_loop,
                     cwd = cwd.resolve(),
@@ -235,7 +235,7 @@ class TestCreateWithDifferentUser(TmpDirMixin):
         event_loop = asyncio.new_event_loop()
 
         async def run_and_wait(event_loop):
-            with NullStream(None) as null_stream, PipeStream(None) as stdout_stream:
+            with NullStream() as null_stream, PipeStream(None) as stdout_stream:
                 process = await PipelineProcess.create(
                     event_loop,
                     cwd = cwd.resolve(),
@@ -283,7 +283,7 @@ class TestCreateWithDifferentGroup(TmpDirMixin):
         event_loop = asyncio.new_event_loop()
 
         async def run_and_wait(event_loop):
-            with NullStream(None) as null_stream, PipeStream(None) as stdout_stream:
+            with NullStream() as null_stream, PipeStream(None) as stdout_stream:
                 process = await PipelineProcess.create(
                     event_loop,
                     cwd = cwd.resolve(),
@@ -313,7 +313,7 @@ class TestCreateWait(TmpDirMixin):
         event_loop = asyncio.new_event_loop()
 
         async def run_and_wait(event_loop):
-            with NullStream(None) as null_stream:
+            with NullStream() as null_stream:
                 process = await PipelineProcess.create(
                     event_loop,
                     cwd = cwd.resolve(),
@@ -346,7 +346,7 @@ class TestEnvironmentVariableExists(TmpDirMixin):
             event_loop = asyncio.new_event_loop()
 
             async def run_and_wait():
-                with NullStream(None) as null_stream, PipeStream(None) as stdout_stream:
+                with NullStream() as null_stream, PipeStream(None) as stdout_stream:
                     process = await PipelineProcess.create(
                         event_loop,
                         cwd = cwd.resolve(),

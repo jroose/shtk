@@ -18,7 +18,7 @@ import sys
 import threading
 
 from .Job import Job
-from .util import export, which # pylint: disable=unused-import
+from .util import export, which, Pipe # pylint: disable=unused-import
 from .PipelineNodeFactory import PipelineProcessFactory
 from .StreamFactory import ManualStreamFactory, PipeStreamFactory
 from ._AsyncUtil import AsyncHelper
@@ -369,22 +369,27 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
         if exceptions is None:
             exceptions = self.exceptions
 
-        job = Job(
-            pipeline_factory.stdout(PipeStreamFactory()),
-            env=self.environment,
-            cwd=self.cwd,
-            event_loop=self.event_loop,
-            user=self.user,
-            group=self.group
-        )
+        with Pipe() as stdout_pipe:
+            job = Job(
+                pipeline_factory,
+                env=self.environment,
+                cwd=self.cwd,
+                event_loop=self.event_loop,
+                user=self.user,
+                group=self.group
+            )
 
-        job.run(
-            stdin_factory=ManualStreamFactory(fileobj_r=self.stdin),
-            stdout_factory=ManualStreamFactory(fileobj_w=self.stdout),
-            stderr_factory=ManualStreamFactory(fileobj_w=self.stderr)
-        )
-        ret = job.stdout.read()
-        job.wait(exceptions=exceptions)
+            job.run(
+                stdin_factory=ManualStreamFactory(fileobj_r=self.stdin),
+                stdout_factory=ManualStreamFactory(fileobj_w=stdout_pipe.writer),
+                stderr_factory=ManualStreamFactory(fileobj_w=self.stderr)
+            )
+
+            stdout_pipe.close_writer()
+
+            ret = stdout_pipe.read()
+
+            job.wait(exceptions=exceptions)
 
         return ret
 

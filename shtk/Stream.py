@@ -31,12 +31,6 @@ class Stream:
         fileobj_w (file-like or None): A file-like object suitable for writing.
     """
     def __init__(self, fileobj_r=None, fileobj_w=None):
-        if fileobj_r is None:
-            fileobj_r = open(os.devnull, 'r', encoding=None)
-
-        if fileobj_w is None:
-            fileobj_w = open(os.devnull, 'w', encoding=None)
-
         self.fileobj_r = fileobj_r
         self.fileobj_w = fileobj_w
 
@@ -180,6 +174,12 @@ class NullStream(Stream):
     """
     Opens os.devnull for both reading and writing
     """
+
+    def __init__(self):
+        fileobj_r = open(os.devnull, 'r', encoding=None)
+        fileobj_w = open(os.devnull, 'w', encoding=None)
+
+        super().__init__(fileobj_r=fileobj_r, fileobj_w=fileobj_w)
 
 @export
 class ManualStream(Stream):

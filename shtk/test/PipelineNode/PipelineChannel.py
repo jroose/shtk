@@ -25,7 +25,7 @@ class TestCreateAndWait(TmpDirMixin):
         event_loop = asyncio.new_event_loop()
 
         async def run_and_wait():
-            with PipeStream(None) as p3, NullStream(None) as null_stream:
+            with PipeStream(None) as p3, NullStream() as null_stream:
                 with PipeStream(None) as p1, PipeStream(None) as p2:
                     cat1 = await PipelineProcess.create(
                         event_loop,
@@ -84,7 +84,7 @@ class TestTerminate(TmpDirMixin):
         event_loop = asyncio.new_event_loop()
 
         async def run_and_wait():
-            with NullStream(None) as null_stream, PipeStream(None) as p2:
+            with NullStream() as null_stream, PipeStream(None) as p2:
                 sleep1 = await PipelineProcess.create(
                     event_loop,
                     cwd = cwd.resolve(),
@@ -136,7 +136,7 @@ class TestKill(TmpDirMixin):
         event_loop = asyncio.new_event_loop()
 
         async def run_and_wait():
-            with NullStream(None) as null_stream, PipeStream(None) as p2:
+            with NullStream() as null_stream, PipeStream(None) as p2:
                 sleep1 = await PipelineProcess.create(
                     event_loop,
                     cwd = cwd.resolve(),
@@ -190,7 +190,7 @@ class TestKillPartial(TmpDirMixin):
         event_loop = asyncio.new_event_loop()
 
         async def run_and_wait():
-            with NullStream(None) as null_stream, PipeStream(None) as p2:
+            with NullStream() as null_stream, PipeStream(None) as p2:
                 sleep1 = await PipelineProcess.create(
                     event_loop,
                     cwd = cwd.resolve(),

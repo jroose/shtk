@@ -8,9 +8,9 @@ import unittest
 
 from ...Job import Job, NonzeroExitCodeException
 from ...Stream import NullStream, FileStream
-from ...StreamFactory import NullStreamFactory, FileStreamFactory, PipeStreamFactory
+from ...StreamFactory import NullStreamFactory, FileStreamFactory, PipeStreamFactory, ManualStreamFactory
 from ...PipelineNodeFactory import PipelineProcessFactory, PipelineChannelFactory
-from ...util import which, export
+from ...util import which, export, Pipe
 
 from ..test_util import register, TmpDirMixin
 
@@ -102,19 +102,22 @@ class TestBuildWithPipeStdinStdout(TmpDirMixin):
 
         cat = PipelineProcessFactory(which('cat'))
 
-        job = Job(cat)
-        job.run(
-            stdin_factory = PipeStreamFactory(),
-            stdout_factory = PipeStreamFactory(),
-            stderr_factory = NullStreamFactory()
-        )
+        with Pipe() as stdout_pipe:
+            with Pipe() as stdin_pipe:
+                job = Job(cat)
+                job.run(
+                    stdin_factory = ManualStreamFactory(fileobj_r=stdin_pipe.reader),
+                    stdout_factory = ManualStreamFactory(fileobj_w=stdout_pipe.writer),
+                    stderr_factory = NullStreamFactory()
+                )
 
-        job.stdin.write(message)
-        job.stdin.close()
-        observed = job.stdout.read()
-        job.stdout.close()
+                stdin_pipe.write(message)
 
-        return_codes = job.wait()
+            stdout_pipe.close_writer()
+
+            observed = stdout_pipe.read()
+
+            return_codes = job.wait()
 
         self.assertEqual(return_codes, (0,))
 
@@ -129,25 +132,27 @@ class TestBuildWithNonexistentFileNoException(TmpDirMixin):
 
         cat = PipelineProcessFactory(which('cat'))
 
-        job = Job(cat(input_file))
+        with Pipe() as stderr_pipe:
+            job = Job(cat(input_file))
 
-        self.assertIsNone(job.stdin)
-        self.assertIsNone(job.stdout)
-        self.assertIsNone(job.stderr)
+            self.assertIsNone(job.stdin)
+            self.assertIsNone(job.stdout)
+            self.assertIsNone(job.stderr)
 
-        job.run(
-            stdin_factory = NullStreamFactory(),
-            stdout_factory = NullStreamFactory(),
-            stderr_factory = PipeStreamFactory()
-        )
+            job.run(
+                stdin_factory = NullStreamFactory(),
+                stdout_factory = NullStreamFactory(),
+                stderr_factory = ManualStreamFactory(fileobj_w=stderr_pipe.writer)
+            )
 
-        observed = job.stderr.read()
-        job.stdout.close()
+            stderr_pipe.close_writer()
 
-        return_codes = job.wait(exceptions=False)
+            return_codes = job.wait(exceptions=False)
+
+            observed = stderr_pipe.read()
 
         self.assertEqual(return_codes, (1,))
-        self.assertTrue('No such file or directory' in observed)
+        self.assertIn('No such file or directory', observed)
 
 @export
 @register()
@@ -158,22 +163,24 @@ class TestBuildWithNonexistentFileWithException(TmpDirMixin):
 
         cat = PipelineProcessFactory(which('cat'))
 
-        job = Job(cat(input_file))
+        with Pipe() as stderr_pipe:
+            job = Job(cat(input_file))
 
-        self.assertIsNone(job.stdin)
-        self.assertIsNone(job.stdout)
-        self.assertIsNone(job.stderr)
+            self.assertIsNone(job.stdin)
+            self.assertIsNone(job.stdout)
+            self.assertIsNone(job.stderr)
 
-        job.run(
-            stdin_factory = NullStreamFactory(),
-            stdout_factory = NullStreamFactory(),
-            stderr_factory = PipeStreamFactory()
-        )
+            job.run(
+                stdin_factory = NullStreamFactory(),
+                stdout_factory = NullStreamFactory(),
+                stderr_factory = ManualStreamFactory(fileobj_w=stderr_pipe.writer)
+            )
 
-        observed = job.stderr.read()
-        job.stdout.close()
+            stderr_pipe.close_writer()
 
-        self.assertTrue('No such file or directory' in observed)
+            observed = stderr_pipe.read()
+
+        self.assertIn('No such file or directory', observed)
 
         with self.assertRaises(NonzeroExitCodeException):
             job.wait()
