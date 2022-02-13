@@ -15,7 +15,7 @@ __all__ = []
 @register()
 class TestRead(TmpDirMixin):
     def runTest(self):
-        stream = NullStream(None)
+        stream = NullStream()
         reader = stream.reader()
 
         message = "Hello World!"
@@ -29,7 +29,7 @@ class TestRead(TmpDirMixin):
 @register()
 class TestWrite(TmpDirMixin):
     def runTest(self):
-        stream = NullStream(None)
+        stream = NullStream()
         writer = stream.writer()
 
         message = "Hello World!"

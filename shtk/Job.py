@@ -184,9 +184,9 @@ class Job:
             stderr_stream=stderr_stream
         )
 
-        stdin_stream.close_reader()
-        stdout_stream.close_writer()
-        stderr_stream.close_writer()
+        stdin_stream.close()
+        stdout_stream.close()
+        stderr_stream.close()
 
     def run(self, stdin_factory, stdout_factory, stderr_factory):
         """
@@ -235,15 +235,15 @@ class Job:
         if pipeline_node is None:
             if self.pipeline is None:
                 raise RuntimeError("Cannot wait for a Job that has not yet called Job.run()")
-            ret = await self.pipeline.wait_async()
-        elif isinstance(pipeline_node, PipelineNode):
-            ret = await pipeline_node.wait_async()
-        else:
+            pipeline_node = self.pipeline
+        elif not isinstance(pipeline_node, PipelineNode):
             raise ValueError("Argument pipeline_node must be a PipelineNode instance or None")
+
+        ret = await pipeline_node.wait_async()
 
         if exceptions:
             if any(rc != 0 for rc in ret):
-                raise NonzeroExitCodeException(x for x in self.pipeline.flatten_children())
+                raise NonzeroExitCodeException(x for x in pipeline_node.flatten_children())
 
         return tuple(ret)
 
