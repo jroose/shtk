@@ -7,9 +7,9 @@ import sys
 import time
 import unittest
 
-from ...Stream import Stream, NullStream, FileStream, PipeStream
+from ...Stream import Stream, NullStream, FileStream, PipeStream, ManualStream
 from ...PipelineNode import PipelineProcess, PipelineChannel
-from ...util import which, export
+from ...util import which, export, Pipe
 
 from ..test_util import register, TmpDirMixin
 
@@ -25,8 +25,8 @@ class TestCreateAndWait(TmpDirMixin):
         event_loop = asyncio.new_event_loop()
 
         async def run_and_wait():
-            with PipeStream(None) as p3, NullStream() as null_stream:
-                with PipeStream(None) as p1, PipeStream(None) as p2:
+            with Pipe() as out_pipe, ManualStream(fileobj_w=out_pipe.writer) as p3, NullStream() as null_stream:
+                with Pipe() as in_pipe, ManualStream(fileobj_r=in_pipe.reader) as p1, PipeStream() as p2:
                     cat1 = await PipelineProcess.create(
                         event_loop,
                         cwd = cwd.resolve(),
@@ -53,11 +53,12 @@ class TestCreateAndWait(TmpDirMixin):
                         right = cat2
                     )
 
-                    p1.writer().write(message)
+                    in_pipe.write(message)
+                    in_pipe.writer.close()
 
-                p3.close_writer()
+                out_pipe.close_writer()
 
-                stdout_result = p3.reader().read()
+                stdout_result = out_pipe.read()
 
                 returncodes = await channel.wait_async()
 
@@ -84,7 +85,7 @@ class TestTerminate(TmpDirMixin):
         event_loop = asyncio.new_event_loop()
 
         async def run_and_wait():
-            with NullStream() as null_stream, PipeStream(None) as p2:
+            with NullStream() as null_stream, PipeStream() as p2:
                 sleep1 = await PipelineProcess.create(
                     event_loop,
                     cwd = cwd.resolve(),
@@ -136,7 +137,7 @@ class TestKill(TmpDirMixin):
         event_loop = asyncio.new_event_loop()
 
         async def run_and_wait():
-            with NullStream() as null_stream, PipeStream(None) as p2:
+            with NullStream() as null_stream, PipeStream() as p2:
                 sleep1 = await PipelineProcess.create(
                     event_loop,
                     cwd = cwd.resolve(),
@@ -190,7 +191,7 @@ class TestKillPartial(TmpDirMixin):
         event_loop = asyncio.new_event_loop()
 
         async def run_and_wait():
-            with NullStream() as null_stream, PipeStream(None) as p2:
+            with NullStream() as null_stream, PipeStream() as p2:
                 sleep1 = await PipelineProcess.create(
                     event_loop,
                     cwd = cwd.resolve(),
