@@ -188,6 +188,15 @@ class Job:
         stdout_stream.close()
         stderr_stream.close()
 
+        if self.pipeline.stdin_stream is not None:
+            self.pipeline.stdin_stream.close()
+
+        if self.pipeline.stdout_stream is not None:
+            self.pipeline.stdout_stream.close()
+
+        if self.pipeline.stderr_stream is not None:
+            self.pipeline.stderr_stream.close()
+
     def run(self, stdin_factory, stdout_factory, stderr_factory):
         """
         Creates and runs a new pipeline

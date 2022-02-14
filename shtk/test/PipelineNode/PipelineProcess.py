@@ -10,9 +10,9 @@ import sys
 import time
 import unittest
 
-from ...Stream import NullStream, PipeStream
+from ...Stream import NullStream, PipeStream, ManualStream
 from ...PipelineNode import PipelineProcess
-from ...util import which, export
+from ...util import which, export, Pipe
 from ...Job import Job
 
 from ..test_util import register, TmpDirMixin
@@ -346,23 +346,23 @@ class TestEnvironmentVariableExists(TmpDirMixin):
             event_loop = asyncio.new_event_loop()
 
             async def run_and_wait():
-                with NullStream() as null_stream, PipeStream(None) as stdout_stream:
-                    process = await PipelineProcess.create(
-                        event_loop,
-                        cwd = cwd.resolve(),
-                        env = {
-                            'A': 'wrong output',
-                            'MESSAGE': message,
-                            'Z': 'wrong output'
-                        },
-                        args = [which('python3'), echo_env, "MESSAGE"],
-                        stdin_stream = null_stream,
-                        stdout_stream = stdout_stream,
-                        stderr_stream = null_stream
-                    )
-                    stdout_stream.close_writer()
-                    observed = stdout_stream.reader().read()
-                    stdout_stream.close()
+                with Pipe() as pipe:
+                    with NullStream() as null_stream, ManualStream(fileobj_w=pipe.writer) as stdout_stream:
+                        process = await PipelineProcess.create(
+                            event_loop,
+                            cwd = cwd.resolve(),
+                            env = {
+                                'A': 'wrong output',
+                                'MESSAGE': message,
+                                'Z': 'wrong output'
+                            },
+                            args = [which('python3'), echo_env, "MESSAGE"],
+                            stdin_stream = null_stream,
+                            stdout_stream = stdout_stream,
+                            stderr_stream = null_stream
+                        )
+                        pipe.close_writer()
+                        observed = pipe.read()
 
                 await process.wait_async()
 

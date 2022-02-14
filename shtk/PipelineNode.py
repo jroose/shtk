@@ -52,6 +52,10 @@ class PipelineNode(abc.ABC):
         Runs the process
         """
 
+        self.stdin_stream.close_reader()
+        self.stdout_stream.close_writer()
+        self.stderr_stream.close_writer()
+
     @staticmethod
     async def _get_return_code(rc_list, idx, coro):
         rc_list[idx] = await coro
@@ -302,6 +306,8 @@ class PipelineProcess(PipelineNode):
         )
 
         self.proc = await proc_start
+
+        await super().run()
 
     def __repr__(self):
         return f"PipelineProcess(cwd={self.cwd!r}, args={self.args!r}, env={self.environment!r}, stdin_stream={self.stdin_stream!r}, stdout_stream={self.stdout_stream!r}, stderr_stream={self.stderr_stream!r})" #pylint: disable=line-too-long
