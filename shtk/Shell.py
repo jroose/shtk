@@ -435,7 +435,10 @@ class Shell: # pylint: disable=too-many-arguments, too-many-instance-attributes
         if exceptions is None:
             exceptions = self.exceptions
 
-        filepath = str(pathlib.Path(filepath).resolve())
+        filepath = pathlib.Path(filepath)
+        if not filepath.is_absolute():
+            filepath = self.cwd / filepath
+        filepath = str(filepath.resolve())
 
         shcmd = self.command('/bin/sh')
         executable = str(sys.executable or 'python3')

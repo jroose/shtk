@@ -453,6 +453,27 @@ export TEST
 
 @export
 @register()
+class TestShellRelativeSourceSuccess(TmpDirMixin):
+    def setUp(self):
+        super().setUp()
+
+    def runTest(self):
+        cwd = pathlib.Path(self.tmpdir.name)
+        input_file = 'test.sh'
+        exp_val = random.randint(1024,1024*1024*1024)
+
+        with (cwd / input_file).open('w') as fout:
+            print(f"""
+TEST={exp_val!s}
+export TEST
+            """.strip(), file=fout)
+
+        with Shell(cwd=cwd) as sh:
+            sh.source(input_file)
+            self.assertEqual(sh.environment.get('TEST'), str(exp_val))
+
+@export
+@register()
 class TestShellSourceFailure(TmpDirMixin):
     def setUp(self):
         super().setUp()
